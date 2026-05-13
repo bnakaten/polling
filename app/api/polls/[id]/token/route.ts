@@ -21,7 +21,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     return NextResponse.json({ 
       success: true,
-      votingLink: `http://localhost:3000/vote/${newToken}`,
+      votingLink: `https://rfcs.fun:3443/vote/${newToken}`,
     });
   } catch (error: any) {
     console.error("Token generation error:", error);

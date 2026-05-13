@@ -189,11 +189,11 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
                     {pollDetails.poll.tokens.map((token: any) => (
                       <div key={token.token} className="flex items-center justify-between bg-white p-2 rounded border border-zinc-200">
                         <a 
-                          href={`http://localhost:3000/vote/${token.token}`}
+                          href={`https://rfcs.fun:3443/vote/${token.token}`}
                           target="_blank"
                           className="flex-1 text-blue-600 hover:underline break-all text-sm"
                         >
-                          http://localhost:3000/vote/{token.token}
+                           https://rfcs.fun:3443/vote/{token.token}
                         </a>
                         {token.voteCount !== undefined && (
                           <span className="text-xs text-zinc-500 px-2 py-1 bg-zinc-100 rounded">

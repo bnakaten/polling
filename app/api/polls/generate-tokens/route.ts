@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
-      urls: tokens.map(token => `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/vote/${token}`),
+      urls: tokens.map(token => `${process.env.NEXT_PUBLIC_APP_URL || "https://rfcs.fun:3443"}/vote/${token}`),
     });
   } catch (error) {
     return NextResponse.json({ error: "Failed to generate tokens" }, { status: 500 });

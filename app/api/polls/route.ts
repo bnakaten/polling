@@ -85,11 +85,11 @@ export async function POST(request: Request) {
     });
 
     const firstToken = await generateVotingToken(createdPoll.id);
-    const votingLink = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/vote/${firstToken}`;
+    const votingLink = `${process.env.NEXT_PUBLIC_APP_URL || "https://rfcs.fun:3443"}/vote/${firstToken}`;
     const generatedUrls = [];
     for (let i = 0; i < urlCount; i++) {
       const token = await generateVotingToken(createdPoll.id);
-      generatedUrls.push(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/vote/${token}`);
+      generatedUrls.push(`${process.env.NEXT_PUBLIC_APP_URL || "https://rfcs.fun:3443"}/vote/${token}`);
     }
 
     return NextResponse.json({ 
