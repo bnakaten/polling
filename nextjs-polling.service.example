@@ -1,0 +1,24 @@
+# Next.js Production Deployment
+# Copy to /etc/systemd/system/nextjs-polling.service
+
+[Unit]
+Description=Next.js Polling Application
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/polling
+Environment=NODE_ENV=production
+Environment=DATABASE_URL=file:./prisma/polling.db
+Environment=JWT_SECRET=your-production-jwt-secret-here
+Environment=HOST=0.0.0.0
+Environment=PORT=3000
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+[workspace]
+authors = ["Benjamin Nakaten <bnakaten@gfz.de>"]
+channels = ["conda-forge"]
+name = "polling"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+nodejs = ">=25.8.2,<25.9"
