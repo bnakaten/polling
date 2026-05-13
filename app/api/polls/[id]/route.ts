@@ -106,7 +106,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Not authorized to update this poll" }, { status: 403 });
     }
 
-    const { title, description, imageUrl, questions } = await request.json();
+    const body = await request.json();
+    const { title, description, imageUrl, questions } = body;
+
+    console.log("[DEBUG] Request body:", body);
+    console.log("[DEBUG] Questions:", questions);
+    if (questions && questions.length > 0) {
+      console.log("[DEBUG] First question text type:", typeof questions[0]?.text, "value:", questions[0]?.text);
+    }
 
     if (!title || !questions || questions.length === 0) {
       return NextResponse.json({ error: "Title and questions are required" }, { status: 400 });
@@ -133,7 +140,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             isOptional: q.isOptional || false,
             pollId,
             options: q.answerType === "multirangeslider" ? undefined : {
-              create: q.options?.map((opt: any) => ({ text: opt })) || [],
+              create: q.options?.map((opt: any) => ({ text: opt.text })) || [],
             },
           },
         })

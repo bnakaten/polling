@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname localhost",
+    "dev": "next dev",
     "build": "NODE_OPTIONS=--openssl-legacy-provider next build",
     "start": "NODE_OPTIONS=--openssl-legacy-provider next start",
     "lint": "eslint",
@@ -16,7 +16,7 @@
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^12.9.0",
     "jsonwebtoken": "^9.0.3",
-    "next": "16.2.4",
+    "next": "^16.2.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "sqlite3": "^6.0.1",

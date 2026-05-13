@@ -91,7 +91,11 @@ async function EditPollForm({ poll, initialQuestions }: EditPollFormProps) {
     const questionCount = parseInt(formData.get("questionCount") as string || "0");
 
       for (let i = 0; i < questionCount; i++) {
-        const questionText = formData.get(`question_${i}_text`) as string;
+        const questionText = formData.get(`question_${i}_text`) as string || "";
+        if (!questionText.trim()) {
+          console.warn(`[WARN] Question ${i} has empty text, skipping`);
+          continue;
+        }
         const questionId = parseInt(formData.get(`question_${i}_id`) as string || "0");
         const questionCategory = formData.get(`question_${i}_category`) as string || "";
         const questionDescription = formData.get(`question_${i}_description`) as string || "";
