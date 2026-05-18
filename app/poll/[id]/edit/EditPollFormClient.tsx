@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 
 type AnswerType = "default" | "rating" | "textarea" | "multirangeslider";
 
@@ -49,8 +48,6 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
   const [uploadingImage, setUploadingImage] = useState(false);
   const [tempImage, setTempImage] = useState<File | null>(null);
   const [questionImages, setQuestionImages] = useState<{[key: number]: File | null}>({});
-  const [showSuccess, setShowSuccess] = useState(false);
-  const router = useRouter();
 
   const addQuestion = () => {
     setQuestions([...questions, { id: generateId(), text: "", category: "", description: "", answerType: "default", options: [{ id: generateId(), text: "" }, { id: generateId(), text: "" }], imageUrl: "", isOptional: false }]);
@@ -267,7 +264,6 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
         }
         
         await onSubmit(formData);
-        setShowSuccess(true);
       }
     } catch (err) {
       console.error("Failed to upload images:", err);
@@ -493,42 +489,26 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
           </div>
         ))}
       </div>
-      {showSuccess ? (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-          <h3 className="text-lg font-semibold text-green-800 mb-2">Poll updated successfully!</h3>
-          <div className="flex gap-4 justify-center mt-4">
-            <button 
-              type="button" 
-              onClick={() => router.push(`/poll/${poll.id}`)}
-              className="bg-zinc-900 text-white px-6 py-3 rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors"
-            >
-              View Poll
-            </button>
-            <button 
-              type="button" 
-              onClick={() => setShowSuccess(false)}
-              className="bg-zinc-100 text-zinc-900 px-6 py-3 rounded-md text-sm font-medium hover:bg-zinc-200 transition-colors"
-            >
-              Continue Editing
-            </button>
-          </div>
-        </div>
-      ) : (
-        <>
-          <a href={`/poll/${poll.id}`} className="fixed bottom-6 left-6 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 px-6 py-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center gap-2 z-50">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Cancel
-          </a>
-          <button type="submit" className="fixed bottom-6 right-6 bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center gap-2 z-50">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-            </svg>
-            Update Poll
-          </button>
-        </>
-      )}
+      <a href={`/poll/${poll.id}`} className="fixed bottom-6 left-6 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 px-6 py-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center gap-2 z-50">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        Cancel
+      </a>
+      <button type="submit" className="fixed bottom-6 right-6 bg-zinc-900 hover:bg-zinc-800 text-white px-6 py-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center gap-2 z-50">
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+        </svg>
+        Update Poll
+      </button>
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="fixed top-6 right-6 bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-3 rounded-full shadow-lg transition-all hover:scale-105 flex items-center gap-2 z-50"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+        </svg>
+      </button>
     </form>
   );
 }

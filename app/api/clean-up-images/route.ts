@@ -14,10 +14,6 @@ export async function POST() {
       });
     }
     
-    const allFiles = readdirSync(pollImagesDir).filter(file => 
-      file.endsWith(".jpg") || file.endsWith(".png") || file.endsWith(".jpeg") || file.endsWith(".gif") || file.endsWith(".webp")
-    );
-    
     const usedImages = new Set<string>();
     
     const polls = await db.poll.findMany({
@@ -28,22 +24,28 @@ export async function POST() {
       select: { imageUrl: true },
     });
     
+    const imageFiles = new Set<string>();
+    
     polls.forEach(poll => {
-      if (poll.imageUrl && poll.imageUrl.startsWith("/poll-images/")) {
-        usedImages.add(poll.imageUrl.replace("/poll-images/", ""));
+      if (poll.imageUrl && poll.imageUrl.startsWith("/api/poll-images/")) {
+        imageFiles.add(poll.imageUrl.replace("/api/poll-images/", ""));
       }
     });
     
     questions.forEach(question => {
-      if (question.imageUrl && question.imageUrl.startsWith("/poll-images/")) {
-        usedImages.add(question.imageUrl.replace("/poll-images/", ""));
+      if (question.imageUrl && question.imageUrl.startsWith("/api/poll-images/")) {
+        imageFiles.add(question.imageUrl.replace("/api/poll-images/", ""));
       }
     });
+    
+    const allFiles = readdirSync(pollImagesDir).filter(file => 
+      file.endsWith(".jpg") || file.endsWith(".png") || file.endsWith(".jpeg") || file.endsWith(".gif") || file.endsWith(".webp")
+    );
     
     let removedCount = 0;
     
     for (const file of allFiles) {
-      if (!usedImages.has(file)) {
+      if (!imageFiles.has(file)) {
         const filePath = join(pollImagesDir, file);
         try {
           unlinkSync(filePath);
