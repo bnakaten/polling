@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
     await writeFile(filePath, buffer);
 
-    const imageUrl = `/poll-images/${fileName}`;
+    const imageUrl = `/api/poll-images/${fileName}`;
 
     return NextResponse.json({ 
       success: true, 

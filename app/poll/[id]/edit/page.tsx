@@ -4,6 +4,10 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { EditPollFormClient } from "./EditPollFormClient";
+import { unlink, stat } from "fs/promises";
+import { join } from "path";
+
+export const dynamic = "force-dynamic";
 
 export default async function EditPollPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -64,28 +68,27 @@ async function EditPollForm({ poll, initialQuestions }: EditPollFormProps) {
 
     const authCookie = (await cookies()).get("auth_token");
 
+    if (!authCookie) {
+      throw new Error("Unauthorized");
+    }
+
+    let userId;
+    try {
+      const decoded = (await import("jsonwebtoken")).verify(authCookie.value, process.env.JWT_SECRET || "your-secret-key-change-this");
+      userId = (decoded as { userId: number }).userId;
+    } catch {
+      throw new Error("Unauthorized");
+    }
+
+    if (poll.userId !== userId) {
+      throw new Error("Not authorized to update this poll");
+    }
+
     const title = formData.get("title") as string;
     const description = formData.get("description") as string;
-    let imageUrl = formData.get("imageUrl") as string;
-
-    const file = formData.get("image") as File;
-    if (file && file.size > 0) {
-      const uploadFormData = new FormData();
-      uploadFormData.append("image", file);
-      try {
-        const uploadResponse = await fetch("http://localhost:3000/api/upload-image", {
-          method: "POST",
-          headers: authCookie ? { Cookie: `auth_token=${authCookie.value}` } : undefined,
-          body: uploadFormData,
-        });
-        const uploadData = await uploadResponse.json();
-        if (uploadResponse.ok) {
-          imageUrl = uploadData.imageUrl;
-        }
-      } catch (err) {
-        console.error("Failed to upload image:", err);
-      }
-    }
+    const imageUrlRaw = formData.get("imageUrl");
+    const imageUrl = imageUrlRaw === "" ? null : (imageUrlRaw as string | null);
+    console.log("[DEBUG] imageUrl from form:", imageUrlRaw, "parsed:", imageUrl);
 
     const questionData: any[] = [];
     const questionCount = parseInt(formData.get("questionCount") as string || "0");
@@ -129,31 +132,45 @@ async function EditPollForm({ poll, initialQuestions }: EditPollFormProps) {
       }
 
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
+      await db.$transaction(
+        questionData.filter((q) => q.text.trim()).map((q: any) =>
+          db.question.upsert({
+            where: { id: q.id },
+            update: {
+              text: q.text,
+              category: q.category || null,
+              description: q.description || null,
+              answerType: q.answerType || "default",
+              imageUrl: q.imageUrl || null,
+              isOptional: q.isOptional || false,
+            },
+            create: {
+              text: q.text,
+              category: q.category || null,
+              description: q.description || null,
+              answerType: q.answerType || "default",
+              imageUrl: q.imageUrl || null,
+              isOptional: q.isOptional || false,
+              pollId: poll.id,
+              options: q.answerType === "multirangeslider" ? undefined : {
+                create: q.options?.map((opt: any) => ({ text: opt.text })) || [],
+              },
+            },
+          })
+        )
+      );
 
-      if (authCookie) {
-        headers.Cookie = `auth_token=${authCookie.value}`;
-      }
-
-      const response = await fetch(`http://localhost:3000/api/polls/${poll.id}`, {
-        method: "PUT",
-        headers,
-        body: JSON.stringify({
+      await db.poll.update({
+        where: { id: poll.id },
+        data: {
           title,
-          description,
+          description: description || "",
           imageUrl: imageUrl || null,
-          questions: questionData.filter((q) => q.text.trim()),
-        }),
+        },
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to update poll");
-      }
     } catch (err) {
       console.error("Failed to update poll:", err);
+      throw new Error("Failed to update poll");
     }
   };
 

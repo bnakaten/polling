@@ -6,6 +6,8 @@ import GenerateTokenForm from "./GenerateTokenForm";
 import DownloadCSV from "./DownloadCSV";
 import PollResultsPageClient from "./PollResultsPageClient";
 
+export const dynamic = "force-dynamic";
+
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 
 async function getPollResults(pollId: number) {

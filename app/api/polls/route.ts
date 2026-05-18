@@ -63,8 +63,8 @@ export async function POST(request: Request) {
           options: q.answerType === "multirangeslider" ? undefined : {
             create: q.options.map((opt: string) => ({ text: opt })),
           },
-          likelihood: q.likelihood,
-          consequences: q.consequences,
+          likelihood: q.likelihood ? parseInt(q.likelihood) : null,
+          consequences: q.consequences ? parseInt(q.consequences) : null,
         })),
       },
         },

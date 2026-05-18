@@ -38,6 +38,8 @@ model Question {
   pollId      Int
   category    String?
   description String?
+  likelihood  Int?
+  consequences Int?
   options     Option[]
   poll        Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
   responses   Response[]
