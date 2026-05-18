@@ -155,7 +155,7 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                 }
                 
                 const multirangesliderDefaults = question.answerType === "multirangeslider" ? (
-                  <input type="hidden" name={`question_${question.id}`} defaultValue="3,3" />
+                  <input type="hidden" name={`question_${question.id}`} defaultValue={`${multirangeValues[question.id]?.likelihood ?? 3},${multirangeValues[question.id]?.consequences ?? 3}`} />
                 ) : null;
                 
                 return (

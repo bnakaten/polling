@@ -29,6 +29,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [answersLoaded, setAnswersLoaded] = useState(false);
   const likelihoodRef = useRef<HTMLInputElement>(null);
   const consequencesRef = useRef<HTMLInputElement>(null);
 
@@ -70,8 +71,10 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
       try {
         const parsed = JSON.parse(savedAnswers);
         setAnswers(prev => ({ ...prev, ...parsed }));
+        setAnswersLoaded(true);
       } catch (e) {
         console.error("Failed to parse saved answers");
+        setAnswersLoaded(true);
       }
     } else {
       const initialAnswers: Record<number, { value: string | number | null; answered: boolean }> = {};
@@ -104,7 +107,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     }
   }, [token, currentQuestionIndex]);
 
-  useLayoutEffect(() => {
+   useLayoutEffect(() => {
     if (currentQuestion.answerType === "multirangeslider" && likelihoodRef.current && consequencesRef.current) {
       const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
       const parts = saved.split(",");
@@ -115,8 +118,15 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
       consequencesRef.current.value = String(consequencesVal);
       
       console.log("useLayoutEffect: Set slider DOM values for", currentQuestion.id, ":", likelihoodVal, ",", consequencesVal);
+    } else if (currentQuestion.answerType === "rating" && answersLoaded) {
+      const savedValue = answers[currentQuestion.id]?.value ?? 5;
+      const slider = document.querySelector(`input[name="question_${currentQuestion.id}"]`) as HTMLInputElement;
+      if (slider) {
+        slider.value = String(savedValue);
+        console.log("useLayoutEffect: Set rating slider DOM value for", currentQuestion.id, ":", savedValue);
+      }
     }
-  }, [currentQuestionIndex, currentQuestion.id]);
+  }, [currentQuestionIndex, currentQuestion.id, answersLoaded]);
 
   const saveAnswer = (questionId: number, value: string | number | null) => {
     setAnswers(prev => {
@@ -291,15 +301,15 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
           ) : currentQuestion.answerType === "rating" ? (
             <div className="space-y-4">
               <div className="relative">
-                <input
-                  type="range"
-                  name={`question_${currentQuestion.id}`}
-                  min="0"
-                  max="10"
-                  defaultValue={answers[currentQuestion.id]?.value ?? 5}
-                  onChange={(e) => handleSliderChange(e.target.value)}
-                  className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
-                />
+                  <input
+                    type="range"
+                    name={`question_${currentQuestion.id}`}
+                    min="0"
+                    max="10"
+                    value={answers[currentQuestion.id]?.value ?? 5}
+                    onChange={(e) => handleSliderChange(e.target.value)}
+                    className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                  />
                 <div className="flex justify-between text-xs text-zinc-500 mt-2">
                   <span>0</span>
                   <span>5</span>
@@ -325,15 +335,18 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
               <div key={`multirange-${currentQuestion.id}`} className="space-y-6">
                 <div>
                   <label className="text-sm font-medium text-zinc-700 mb-2 block">Likelihood</label>
-                  <input
-                    ref={likelihoodRef}
-                    key={`likelihood-${currentQuestion.id}`}
-                    type="range"
-                    name={`question_${currentQuestion.id}_likelihood`}
-                    min="1"
-                    max="5"
-                    defaultValue={3}
-                    onChange={(e) => {
+                   <input
+                     ref={likelihoodRef}
+                     key={`likelihood-${currentQuestion.id}`}
+                     type="range"
+                     name={`question_${currentQuestion.id}_likelihood`}
+                     min="1"
+                     max="5"
+                      defaultValue={(() => {
+                        const val = answers[currentQuestion.id]?.value;
+                        return val ? parseInt(String(val).split(",")[0]) : 3;
+                      })()}
+                     onChange={(e) => {
                       const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
                       const parts = saved.split(",");
                       parts[0] = e.target.value;
@@ -351,15 +364,18 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                 </div>
                 <div>
                   <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
-                  <input
-                    ref={consequencesRef}
-                    key={`consequences-${currentQuestion.id}`}
-                    type="range"
-                    name={`question_${currentQuestion.id}_consequences`}
-                    min="1"
-                    max="5"
-                    defaultValue={3}
-                    onChange={(e) => {
+                   <input
+                     ref={consequencesRef}
+                     key={`consequences-${currentQuestion.id}`}
+                     type="range"
+                     name={`question_${currentQuestion.id}_consequences`}
+                     min="1"
+                     max="5"
+                      defaultValue={(() => {
+                        const val = answers[currentQuestion.id]?.value;
+                        return val ? parseInt(String(val).split(",")[1]) : 3;
+                      })()}
+                     onChange={(e) => {
                       const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
                       const parts = saved.split(",");
                       parts[1] = e.target.value;
@@ -418,21 +434,19 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
             Back
           </button>
 
-          {currentQuestionIndex === 0 && (
-            <button
-              type="button"
-              onClick={goBackToLanding}
-              className="w-full sm:w-auto px-6 py-3 rounded-md text-sm font-medium text-zinc-600 hover:text-zinc-800 transition-colors"
-            >
-              Cancel
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={goBackToLanding}
+            className="w-full sm:w-auto px-6 py-3 rounded-md text-sm font-medium text-zinc-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-colors"
+          >
+            Cancel
+          </button>
 
           <button
             type="button"
             onClick={handleNext}
             disabled={submitting}
-            className="w-full sm:w-auto bg-zinc-900 text-white px-6 py-3 rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="ml-auto w-full sm:w-auto bg-zinc-900 text-white px-6 py-3 rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLastQuestion ? "Submit Vote" : "Next"}
           </button>
