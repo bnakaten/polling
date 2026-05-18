@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface VoteFormProps {
   poll: any;
@@ -12,6 +12,7 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [multirangeValues, setMultirangeValues] = useState<Record<number, { likelihood: number; consequences: number }>>({});
   const formRef = useRef<HTMLFormElement>(null);
   
   const ratingQuestionIds = poll.questions
@@ -25,6 +26,20 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
     }, {})
   );
 
+  useEffect(() => {
+    const storedValues = localStorage.getItem(`poll_votes_${token}`);
+    if (storedValues) {
+      try {
+        const parsed = JSON.parse(storedValues);
+        if (parsed.multirangeValues) {
+          setMultirangeValues(parsed.multirangeValues);
+        }
+      } catch (e) {
+        console.error("Failed to parse stored vote values:", e);
+      }
+    }
+  }, [token]);
+
   const handleSliderChange = (questionId: number, value: string) => {
     setSliderValues(prev => ({ ...prev, [questionId]: parseInt(value) }));
   };
@@ -35,6 +50,10 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
       const hiddenInput = formElement.querySelector(`input[name="question_${questionId}"]`) as HTMLInputElement;
       if (hiddenInput) hiddenInput.value = `${likelihood},${consequences}`;
     }
+  };
+
+  const handleMultiRangeChange = (questionId: number, likelihood: number, consequences: number) => {
+    setMultirangeValues(prev => ({ ...prev, [questionId]: { likelihood, consequences } }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,6 +83,9 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
       }
     });
     
+    const multirangeValuesString = JSON.stringify({ multirangeValues });
+    localStorage.setItem(`poll_votes_${token}`, multirangeValuesString);
+
     formData.append("token", token);
 
     try {
@@ -194,67 +216,71 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                          <div className="text-xs text-zinc-400 text-right leading-tight">0 — does not apply</div>
                        </div>
                      </div>
-                    ) : question.answerType === "multirangeslider" ? (
-                      <div className="space-y-6">
-                        <div>
-                          <label className="text-sm font-medium text-zinc-700 mb-2 block">Likelihood</label>
-                          <input
-                            type="range"
-                            name={`question_${question.id}_likelihood`}
-                            min="1"
-                            max="5"
-                            defaultValue="3"
-                            onChange={(e) => {
-                              const formElement = formRef.current;
-                              if (formElement) {
-                                const consequences = formElement.querySelector(`input[name="question_${question.id}_consequences"]`) as HTMLInputElement;
-                                const hiddenInput = formElement.querySelector(`input[name="question_${question.id}"]`) as HTMLInputElement;
-                                if (hiddenInput) hiddenInput.value = `${e.target.value},${consequences?.value || "3"}`;
-                              }
-                            }}
-                            className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
-                          />
-                          <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                            <span>1 Not likely</span>
-                            <span>2 Low likely</span>
-                            <span>3 Likely</span>
-                            <span>4 Highly likely</span>
-                            <span>5 Near certainty</span>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
-                          <input
-                            type="range"
-                            name={`question_${question.id}_consequences`}
-                            min="1"
-                            max="5"
-                            defaultValue="3"
-                            onChange={(e) => {
-                              const formElement = formRef.current;
-                              if (formElement) {
-                                const likelihood = formElement.querySelector(`input[name="question_${question.id}_likelihood"]`) as HTMLInputElement;
-                                const hiddenInput = formElement.querySelector(`input[name="question_${question.id}"]`) as HTMLInputElement;
-                                if (hiddenInput) hiddenInput.value = `${likelihood?.value || "3"},${e.target.value}`;
-                              }
-                            }}
-                            className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
-                          />
-                          <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                            <span>1 Minimal</span>
-                            <span>2 Minor</span>
-                            <span>3 Medium</span>
-                            <span>4 Major</span>
-                            <span>5 Critical</span>
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
-                            <span className="likelihood-value">3</span> / <span className="consequences-value">3</span>
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
+                     ) : question.answerType === "multirangeslider" ? (
+                       <div className="space-y-6">
+                         <div>
+                           <label className="text-sm font-medium text-zinc-700 mb-2 block">Likelihood</label>
+                           <input
+                             type="range"
+                             name={`question_${question.id}_likelihood`}
+                             min="1"
+                             max="5"
+                             value={multirangeValues[question.id]?.likelihood ?? 3}
+                             onChange={(e) => {
+                               const likelihood = parseInt(e.target.value);
+                               const consequences = multirangeValues[question.id]?.consequences ?? 3;
+                               handleMultiRangeChange(question.id, likelihood, consequences);
+                               const formElement = formRef.current;
+                               if (formElement) {
+                                 const hiddenInput = formElement.querySelector(`input[name="question_${question.id}"]`) as HTMLInputElement;
+                                 if (hiddenInput) hiddenInput.value = `${likelihood},${consequences}`;
+                               }
+                             }}
+                             className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                           />
+                           <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                             <span>1 Not likely</span>
+                             <span>2 Low likely</span>
+                             <span>3 Likely</span>
+                             <span>4 Highly likely</span>
+                             <span>5 Near certainty</span>
+                           </div>
+                         </div>
+                         <div>
+                           <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
+                           <input
+                             type="range"
+                             name={`question_${question.id}_consequences`}
+                             min="1"
+                             max="5"
+                             value={multirangeValues[question.id]?.consequences ?? 3}
+                             onChange={(e) => {
+                               const likelihood = multirangeValues[question.id]?.likelihood ?? 3;
+                               const consequences = parseInt(e.target.value);
+                               handleMultiRangeChange(question.id, likelihood, consequences);
+                               const formElement = formRef.current;
+                               if (formElement) {
+                                 const hiddenInput = formElement.querySelector(`input[name="question_${question.id}"]`) as HTMLInputElement;
+                                 if (hiddenInput) hiddenInput.value = `${likelihood},${consequences}`;
+                               }
+                             }}
+                             className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                           />
+                           <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                             <span>1 Minimal</span>
+                             <span>2 Minor</span>
+                             <span>3 Medium</span>
+                             <span>4 Major</span>
+                             <span>5 Critical</span>
+                           </div>
+                         </div>
+                         <div className="text-center">
+                           <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
+                             <span className="likelihood-value">{multirangeValues[question.id]?.likelihood ?? 3}</span> / <span className="consequences-value">{multirangeValues[question.id]?.consequences ?? 3}</span>
+                           </span>
+                         </div>
+                       </div>
+                     ) : (
                     <div className="space-y-2">
                       {question.options.map((option: any) => (
                         <label key={option.id} className="flex items-center space-x-3 cursor-pointer">

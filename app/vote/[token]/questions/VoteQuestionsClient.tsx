@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 interface VoteQuestionsClientProps {
@@ -29,6 +29,8 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const likelihoodRef = useRef<HTMLInputElement>(null);
+  const consequencesRef = useRef<HTMLInputElement>(null);
 
   const questions = poll.questions.filter((q: any) => {
     if (q.answerType === "default" || !q.answerType) {
@@ -84,6 +86,38 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     }
   }, [token]);
 
+  useEffect(() => {
+    console.log("Effect: token or currentQuestionIndex changed", { token, currentQuestionIndex, questionId: currentQuestion.id });
+    const savedAnswers = sessionStorage.getItem(`poll_answers_${token}`);
+    if (savedAnswers) {
+      try {
+        const parsed = JSON.parse(savedAnswers);
+        console.log("Parsed saved answers:", parsed);
+        const currentSaved = parsed[currentQuestion.id];
+        console.log("Current question saved answer:", currentSaved);
+        if (currentSaved && currentQuestion.answerType === "multirangeslider") {
+          setAnswers(prev => ({ ...prev, [currentQuestion.id]: currentSaved }));
+        }
+      } catch (e) {
+        console.error("Failed to parse saved answers for current question", e);
+      }
+    }
+  }, [token, currentQuestionIndex]);
+
+  useLayoutEffect(() => {
+    if (currentQuestion.answerType === "multirangeslider" && likelihoodRef.current && consequencesRef.current) {
+      const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
+      const parts = saved.split(",");
+      const likelihoodVal = parseInt(parts[0]) || 3;
+      const consequencesVal = parseInt(parts[1]) || 3;
+      
+      likelihoodRef.current.value = String(likelihoodVal);
+      consequencesRef.current.value = String(consequencesVal);
+      
+      console.log("useLayoutEffect: Set slider DOM values for", currentQuestion.id, ":", likelihoodVal, ",", consequencesVal);
+    }
+  }, [currentQuestionIndex, currentQuestion.id]);
+
   const saveAnswer = (questionId: number, value: string | number | null) => {
     setAnswers(prev => {
       const newAnswers = { ...prev, [questionId]: { value, answered: true } };
@@ -93,6 +127,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
   };
 
   const handleNext = () => {
+    console.log("handleNext called, current question:", currentQuestion.id);
     if (currentQuestion.answerType === "textarea") {
       const textarea = document.querySelector(`textarea[name="question_${currentQuestion.id}"]`) as HTMLTextAreaElement;
       if (textarea && !textarea.value.trim() && !currentQuestion.isOptional) {
@@ -111,7 +146,9 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
       const likelihood = document.querySelector(`input[name="question_${currentQuestion.id}_likelihood"]`) as HTMLInputElement;
       const consequences = document.querySelector(`input[name="question_${currentQuestion.id}_consequences"]`) as HTMLInputElement;
       if (likelihood && consequences) {
-        saveAnswer(currentQuestion.id, `${likelihood.value},${consequences.value}`);
+        const value = `${likelihood.value},${consequences.value}`;
+        console.log("Saving multirangeslider answer for", currentQuestion.id, ":", value);
+        saveAnswer(currentQuestion.id, value);
       }
     } else {
       const checked = document.querySelector(`input[name="question_${currentQuestion.id}"]:checked`) as HTMLInputElement;
@@ -284,61 +321,71 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                 )}
               </div>
             </div>
-          ) : currentQuestion.answerType === "multirangeslider" ? (
-            <div className="space-y-6">
-              <div>
-                <label className="text-sm font-medium text-zinc-700 mb-2 block">Likelihood</label>
-                <input
-                  type="range"
-                  name={`question_${currentQuestion.id}_likelihood`}
-                  min="1"
-                  max="5"
-                  defaultValue={String(answers[currentQuestion.id]?.value ?? "3,3").split(",")[0]}
-                  onChange={(e) => {
-                    const parts = String(answers[currentQuestion.id]?.value || "3,3").split(",");
-                    parts[0] = e.target.value;
-                    saveAnswer(currentQuestion.id, parts.join(","));
-                  }}
-                  className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                  <span>1 Not likely</span>
-                  <span>2 Low likely</span>
-                  <span>3 Likely</span>
-                  <span>4 Highly likely</span>
-                  <span>5 Near certainty</span>
+            ) : currentQuestion.answerType === "multirangeslider" ? (
+              <div key={`multirange-${currentQuestion.id}`} className="space-y-6">
+                <div>
+                  <label className="text-sm font-medium text-zinc-700 mb-2 block">Likelihood</label>
+                  <input
+                    ref={likelihoodRef}
+                    key={`likelihood-${currentQuestion.id}`}
+                    type="range"
+                    name={`question_${currentQuestion.id}_likelihood`}
+                    min="1"
+                    max="5"
+                    defaultValue={3}
+                    onChange={(e) => {
+                      const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
+                      const parts = saved.split(",");
+                      parts[0] = e.target.value;
+                      saveAnswer(currentQuestion.id, parts.join(","));
+                    }}
+                    className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                    <span>1 Not likely</span>
+                    <span>2 Low likely</span>
+                    <span>3 Likely</span>
+                    <span>4 Highly likely</span>
+                    <span>5 Near certainty</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
+                  <input
+                    ref={consequencesRef}
+                    key={`consequences-${currentQuestion.id}`}
+                    type="range"
+                    name={`question_${currentQuestion.id}_consequences`}
+                    min="1"
+                    max="5"
+                    defaultValue={3}
+                    onChange={(e) => {
+                      const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
+                      const parts = saved.split(",");
+                      parts[1] = e.target.value;
+                      saveAnswer(currentQuestion.id, parts.join(","));
+                    }}
+                    className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                    <span>1 Minimal</span>
+                    <span>2 Minor</span>
+                    <span>3 Medium</span>
+                    <span>4 Major</span>
+                    <span>5 Critical</span>
+                  </div>
+                </div>
+                <div className="text-center">
+                  <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
+                    {(() => {
+                      const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
+                      const parts = saved.split(",");
+                      return `Likelihood: ${parseInt(parts[0]) || 3} / Consequences: ${parseInt(parts[1]) || 3}`;
+                    })()}
+                  </span>
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
-                <input
-                  type="range"
-                  name={`question_${currentQuestion.id}_consequences`}
-                  min="1"
-                  max="5"
-                  defaultValue={String(answers[currentQuestion.id]?.value ?? "3,3").split(",")[1]}
-                  onChange={(e) => {
-                    const parts = String(answers[currentQuestion.id]?.value || "3,3").split(",");
-                    parts[1] = e.target.value;
-                    saveAnswer(currentQuestion.id, parts.join(","));
-                  }}
-                  className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                  <span>1 Minimal</span>
-                  <span>2 Minor</span>
-                  <span>3 Medium</span>
-                  <span>4 Major</span>
-                  <span>5 Critical</span>
-                </div>
-              </div>
-              <div className="text-center">
-                <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
-                  Likelihood: {String(answers[currentQuestion.id]?.value ?? "3,3").split(",")[0]} / Consequences: {String(answers[currentQuestion.id]?.value ?? "3,3").split(",")[1]}
-                </span>
-              </div>
-            </div>
-          ) : (
+            ) : (
             <div className="space-y-3">
               {currentQuestion.options.map((option: any) => {
                 const savedValue = answers[currentQuestion.id]?.value;
