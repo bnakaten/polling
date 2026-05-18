@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import GenerateTokenForm from "./GenerateTokenForm";
-import GenerateUrlsForm from "./GenerateUrlsForm";
 import DownloadCSV from "./DownloadCSV";
 
 interface PollDetails {
@@ -28,7 +27,7 @@ interface PollResultsPageProps {
 }
 
 export default function PollResultsPageClient({ pollId, initialData, initialPollDetails }: PollResultsPageProps) {
-  const [showGenerateUrls, setShowGenerateUrls] = useState(false);
+
   const [showVotingLinks, setShowVotingLinks] = useState(false);
   const [pollDetails, setPollDetails] = useState(initialPollDetails);
 
@@ -96,6 +95,57 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
             />
           )}
 
+          <div className="mt-8 p-4 bg-zinc-50 rounded-lg border border-zinc-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-medium text-zinc-700">Voting Links</h3>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowVotingLinks(!showVotingLinks)}
+                  className="text-sm text-zinc-600 hover:text-zinc-900"
+                >
+                  {showVotingLinks ? "Hide" : "Show"} ({pollDetails.poll?.tokens?.length || 0})
+                </button>
+                <GenerateTokenForm pollId={pollId} />
+              </div>
+            </div>
+            
+            {showVotingLinks && (
+              <>
+                {pollDetails.poll?.tokens && pollDetails.poll.tokens.length > 0 ? (
+                  <div className="space-y-2 mt-4">
+                    {pollDetails.poll.tokens.map((token: any) => (
+                      <div key={token.token} className="flex items-center justify-between bg-white p-2 rounded border border-zinc-200">
+                        <a 
+                          href={`https://rfcs.fun:3443/vote/${token.token}`}
+                          target="_blank"
+                          className="flex-1 text-blue-600 hover:underline break-all text-sm"
+                        >
+                           https://rfcs.fun:3443/vote/{token.token}
+                        </a>
+                        {token.voteCount !== undefined && (
+                          <span className="text-xs text-zinc-500 px-2 py-1 bg-zinc-100 rounded">
+                            {token.voteCount}/{token.maxVotes}
+                          </span>
+                        )}
+                        {token.voteCount >= token.maxVotes && (
+                          <span className="text-xs text-red-500 px-2 py-1 bg-red-50 rounded">
+                            Expired
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-zinc-500 mt-4">No voting links generated yet.</p>
+                )}
+              </>
+            )}
+            <p className="text-xs text-zinc-500 mt-2">
+              Share these links with voters. Each vote consumes one link.
+            </p>
+          </div>
+
           <div className="space-y-8">
             {results?.map((result: any) => {
               const isTextarea = result.answerType === "textarea";
@@ -158,64 +208,6 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
                 </div>
               );
             })}
-          </div>
-
-          <div className="mt-8 p-4 bg-zinc-50 rounded-lg border border-zinc-200">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-sm font-medium text-zinc-700">Voting Links</h3>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowVotingLinks(!showVotingLinks)}
-                  className="text-sm text-zinc-600 hover:text-zinc-900"
-                >
-                  {showVotingLinks ? "Hide" : "Show"} ({pollDetails.poll?.tokens?.length || 0})
-                </button>
-                <GenerateTokenForm pollId={pollId} />
-                <button
-                  type="button"
-                  onClick={() => setShowGenerateUrls(true)}
-                  className="bg-zinc-900 text-white px-3 py-1 rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors"
-                >
-                  + Generate URLs
-                </button>
-              </div>
-            </div>
-            
-            {showVotingLinks && (
-              <>
-                {pollDetails.poll?.tokens && pollDetails.poll.tokens.length > 0 ? (
-                  <div className="space-y-2 mt-4">
-                    {pollDetails.poll.tokens.map((token: any) => (
-                      <div key={token.token} className="flex items-center justify-between bg-white p-2 rounded border border-zinc-200">
-                        <a 
-                          href={`https://rfcs.fun:3443/vote/${token.token}`}
-                          target="_blank"
-                          className="flex-1 text-blue-600 hover:underline break-all text-sm"
-                        >
-                           https://rfcs.fun:3443/vote/{token.token}
-                        </a>
-                        {token.voteCount !== undefined && (
-                          <span className="text-xs text-zinc-500 px-2 py-1 bg-zinc-100 rounded">
-                            {token.voteCount}/{token.maxVotes}
-                          </span>
-                        )}
-                        {token.voteCount >= token.maxVotes && (
-                          <span className="text-xs text-red-500 px-2 py-1 bg-red-50 rounded">
-                            Expired
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-zinc-500 mt-4">No voting links generated yet.</p>
-                )}
-              </>
-            )}
-            <p className="text-xs text-zinc-500 mt-2">
-              Share these links with voters. Each vote consumes one link.
-            </p>
           </div>
         </div>
       </main>
