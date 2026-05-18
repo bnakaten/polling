@@ -424,33 +424,33 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
           )}
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-zinc-200">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={currentQuestionIndex === 0 || submitting}
-            className="w-full sm:w-auto px-6 py-3 rounded-md text-sm font-medium text-zinc-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Back
-          </button>
+         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-zinc-200">
+           <button
+             type="button"
+             onClick={handleBack}
+             disabled={currentQuestionIndex === 0 || submitting}
+             className="w-full sm:w-auto px-6 py-3 rounded-md text-sm font-medium text-zinc-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+             Back
+           </button>
 
-          <button
-            type="button"
-            onClick={goBackToLanding}
-            className="w-full sm:w-auto px-6 py-3 rounded-md text-sm font-medium text-zinc-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-colors"
-          >
-            Cancel
-          </button>
+           <button
+             type="button"
+             onClick={goBackToLanding}
+             className="mx-auto w-full sm:w-auto px-6 py-3 rounded-md text-sm font-medium text-zinc-700 bg-white border border-zinc-300 hover:bg-zinc-50 transition-colors"
+           >
+             Cancel
+           </button>
 
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={submitting}
-            className="ml-auto w-full sm:w-auto bg-zinc-900 text-white px-6 py-3 rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLastQuestion ? "Submit Vote" : "Next"}
-          </button>
-        </div>
+           <button
+             type="button"
+             onClick={handleNext}
+             disabled={submitting}
+             className="ml-auto w-full sm:w-auto bg-zinc-900 text-white px-6 py-3 rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+           >
+             {isLastQuestion ? "Submit Vote" : "Next"}
+           </button>
+         </div>
 
         <div className="mt-6 pt-6 border-t border-zinc-200 text-center">
           <p className="text-sm text-zinc-500">
