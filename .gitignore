@@ -54,4 +54,11 @@ build/
 
 # TypeScript build cache
 *.tsbuildinfo
+public/*
+
+cert_rfcs.fun.crt
+ecosystem.config.js
+server.csr
+server.js
+server.key
 

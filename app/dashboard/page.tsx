@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import DeletePollButton from "./DeletePollButton";
 import CleanUpImagesButton from "./CleanUpImagesButton";
-import ChangePasswordForm from "./ChangePasswordForm";
+
 
 export default async function DashboardPage() {
   const user = await requireAuth();
@@ -63,15 +63,20 @@ export default async function DashboardPage() {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-bold text-zinc-900">Poll Dashboard</h1>
             <div className="flex gap-3 items-center">
-              <ChangePasswordForm />
+              <Link
+                href="/dashboard/change-password"
+                className="bg-zinc-100 hover:bg-zinc-200 text-zinc-900 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Change Password
+              </Link>
               <CleanUpImagesButton pollCount={polls.length} />
-             <Link
-               href="/create-poll"
-               className="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-             >
-               Create New Poll
-             </Link>
-           </div>
+              <Link
+                href="/create-poll"
+                className="bg-zinc-900 hover:bg-zinc-800 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Create New Poll
+              </Link>
+            </div>
          </div>
 
         {polls.length === 0 ? (
