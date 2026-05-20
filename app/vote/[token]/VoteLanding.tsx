@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import FormattedHtml from "./FormattedHtml";
 
 interface VoteLandingProps {
   poll: any;
@@ -54,7 +55,7 @@ export default function VoteLanding({ poll, token }: VoteLandingProps) {
           )}
           <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-3">{poll.title}</h1>
           {poll.description && (
-            <p className="text-lg text-zinc-600">{poll.description}</p>
+            <FormattedHtml html={poll.description} className="text-lg text-zinc-600" />
           )}
         </div>
 

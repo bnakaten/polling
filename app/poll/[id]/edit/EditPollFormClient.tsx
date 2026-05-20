@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 type AnswerType = "default" | "rating" | "textarea" | "multirangeslider";
 
@@ -33,6 +33,10 @@ function generateId() {
 
 export function EditPollFormClient({ poll, initialQuestions, initialQuestionCount, onSubmit }: EditPollFormClientProps) {
   const formRef = useRef<HTMLFormElement>(null);
+  const descriptionEditorRef = useRef<HTMLDivElement>(null);
+  const descriptionValueInputRef = useRef<HTMLInputElement>(null);
+  const questionDescriptionRefs = useRef<{[key: number]: HTMLDivElement}>({});
+  const questionDescriptionValueInputRefs = useRef<{[key: number]: HTMLInputElement}>({});
   const [questions, setQuestions] = useState<Question[]>(initialQuestions.map((q: any) => ({
     id: q.id,
     text: q.text,
@@ -49,32 +53,19 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
   const [tempImage, setTempImage] = useState<File | null>(null);
   const [questionImages, setQuestionImages] = useState<{[key: number]: File | null}>({});
 
+  useEffect(() => {
+    if (poll.description && descriptionEditorRef.current) {
+      descriptionEditorRef.current.innerHTML = poll.description;
+    }
+    questions.forEach((q, idx) => {
+      if (q.description && questionDescriptionRefs.current[idx]) {
+        questionDescriptionRefs.current[idx].innerHTML = q.description;
+      }
+    });
+  }, []);
+
   const addQuestion = () => {
     setQuestions([...questions, { id: generateId(), text: "", category: "", description: "", answerType: "default", options: [{ id: generateId(), text: "" }, { id: generateId(), text: "" }], imageUrl: "", isOptional: false }]);
-  };
-
-  const handleSubmit = async (formData: FormData) => {
-    const file = tempImage || (formData.get("image") as File);
-    if (file && file.size > 0) {
-      setUploadingImage(true);
-      const uploadFormData = new FormData();
-      uploadFormData.append("image", file);
-      try {
-        const response = await fetch("/api/upload-image", {
-          method: "POST",
-          body: uploadFormData,
-        });
-        const data = await response.json();
-        if (response.ok) {
-          setImageUrl(data.imageUrl);
-          formData.set("imageUrl", data.imageUrl);
-        }
-      } catch (err) {
-        console.error("Failed to upload image:", err);
-      } finally {
-        setUploadingImage(false);
-      }
-    }
   };
 
   const addOption = (questionIndex: number) => {
@@ -115,6 +106,20 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
     const newQuestions = [...questions];
     newQuestions[questionIndex].description = description;
     setQuestions(newQuestions);
+  };
+
+
+
+  const handleDescriptionInput = (e: React.FormEvent<HTMLDivElement>, questionIndex: number = -1) => {
+    if (questionIndex === -1) {
+      if (descriptionEditorRef.current && descriptionValueInputRef.current) {
+        descriptionValueInputRef.current.value = descriptionEditorRef.current.innerHTML;
+      }
+    } else {
+      if (questionDescriptionRefs.current[questionIndex] && questionDescriptionValueInputRefs.current[questionIndex]) {
+        questionDescriptionValueInputRefs.current[questionIndex].value = questionDescriptionRefs.current[questionIndex].innerHTML;
+      }
+    }
   };
 
   const updateQuestionAnswerType = (questionIndex: number, answerType: AnswerType) => {
@@ -220,6 +225,15 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (descriptionEditorRef.current && descriptionValueInputRef.current) {
+      descriptionValueInputRef.current.value = descriptionEditorRef.current.innerHTML;
+    }
+    questions.forEach((q, idx) => {
+      if (questionDescriptionRefs.current[idx] && questionDescriptionValueInputRefs.current[idx]) {
+        questionDescriptionValueInputRefs.current[idx].value = questionDescriptionRefs.current[idx].innerHTML;
+      }
+    });
+    
     setUploadingImage(true);
     
     try {
@@ -256,6 +270,14 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
       setQuestions(updatedQuestions);
       
       if (formRef.current) {
+        if (descriptionEditorRef.current && descriptionValueInputRef.current) {
+          descriptionValueInputRef.current.value = descriptionEditorRef.current.innerHTML;
+        }
+        questions.forEach((q, idx) => {
+          if (questionDescriptionRefs.current[idx] && questionDescriptionValueInputRefs.current[idx]) {
+            questionDescriptionValueInputRefs.current[idx].value = questionDescriptionRefs.current[idx].innerHTML;
+          }
+        });
         const formData = new FormData(formRef.current);
         
         for (const [questionIndex, imageUrl] of Object.entries(questionImageUpdates)) {
@@ -281,9 +303,29 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
           <input id="title" name="title" type="text" required defaultValue={poll.title} className="block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm" placeholder="Enter poll title..." />
         </div>
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-zinc-700 mb-2">Description (Optional)</label>
-          <textarea id="description" name="description" defaultValue={poll.description || ""} className="block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm" rows={3} placeholder="Enter poll description..." />
+          <label className="block text-sm font-medium text-zinc-700 mb-2">Description (Optional)</label>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-1 p-2 bg-zinc-100 rounded-md border border-zinc-300">
+          <button type="button" onClick={() => document.execCommand("bold")} className="px-2 py-1 text-sm font-bold hover:bg-zinc-200 rounded transition-colors">B</button>
+          <button type="button" onClick={() => document.execCommand("italic")} className="px-2 py-1 text-sm italic hover:bg-zinc-200 rounded transition-colors">I</button>
+          <button type="button" onClick={() => document.execCommand("underline")} className="px-2 py-1 text-sm underline hover:bg-zinc-200 rounded transition-colors">U</button>
         </div>
+        <div
+          ref={descriptionEditorRef}
+           id="poll-description-editor"
+           contentEditable
+           suppressContentEditableWarning
+           onInput={(e) => handleDescriptionInput(e, -1)}
+           onKeyDown={(e) => {
+             if (e.key === "Enter" && !e.shiftKey) {
+               e.preventDefault();
+             }
+           }}
+           className="block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm min-h-[80px] whitespace-pre-wrap outline-none"
+         />
+         <input type="hidden" name="description" ref={descriptionValueInputRef} defaultValue={poll.description || ""} />
+       </div>
+         </div>
 
         <div>
           <label htmlFor="image" className="block text-sm font-medium text-zinc-700 mb-2">Poll Image (Optional)</label>
@@ -361,7 +403,38 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
             </div>
             <input type="text" name={`question_${questionIndex}_text`} value={question.text} onChange={(e) => updateQuestionText(questionIndex, e.target.value)} className="block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm" placeholder="Enter question text..." />
             <input type="text" name={`question_${questionIndex}_category`} value={question.category} onChange={(e) => updateQuestionCategory(questionIndex, e.target.value)} className="block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm" placeholder="Enter question category (short sentence)..." />
-            <textarea name={`question_${questionIndex}_description`} value={question.description} onChange={(e) => updateQuestionDescription(questionIndex, e.target.value)} className="block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm" placeholder="Enter question long description (optional)..." rows={3} />
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-2">Description (Optional)</label>
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-1 p-2 bg-zinc-100 rounded-md border border-zinc-300">
+                  <button type="button" onClick={() => document.execCommand("bold")} className="px-2 py-1 text-sm font-bold hover:bg-zinc-200 rounded transition-colors">B</button>
+                  <button type="button" onClick={() => document.execCommand("italic")} className="px-2 py-1 text-sm italic hover:bg-zinc-200 rounded transition-colors">I</button>
+                  <button type="button" onClick={() => document.execCommand("underline")} className="px-2 py-1 text-sm underline hover:bg-zinc-200 rounded transition-colors">U</button>
+                </div>
+                <div
+                  ref={(el) => {
+                    if (el) {
+                      questionDescriptionRefs.current[questionIndex] = el;
+                    }
+                  }}
+                  id={`question-${questionIndex}-description-editor`}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => handleDescriptionInput(e, questionIndex)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                    }
+                  }}
+                  className="block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm min-h-[80px] whitespace-pre-wrap outline-none"
+                />
+                <input type="hidden" name={`question_${questionIndex}_description`} ref={(el) => {
+                  if (el) {
+                    questionDescriptionValueInputRefs.current[questionIndex] = el;
+                  }
+                }} defaultValue={question.description || ""} />
+              </div>
+            </div>
 
             <input type="hidden" name={`answerType_${questionIndex}`} value={question.answerType} />
             <div className="space-y-2">

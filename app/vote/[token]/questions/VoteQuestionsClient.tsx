@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import FormattedHtml from "../FormattedHtml";
 
 interface VoteQuestionsClientProps {
   poll: any;
@@ -298,8 +299,8 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                 Required
               </span>
             )}
-          </h3>
-          {currentQuestion.description && currentQuestion.description.trim() !== "" && <p className="text-sm text-zinc-600 mb-6">{currentQuestion.description}</p>}
+           </h3>
+           {currentQuestion.description && currentQuestion.description.trim() !== "" && <FormattedHtml html={currentQuestion.description} className="text-sm text-zinc-600 mb-6" />}
           
           <input type="hidden" name="token" value={token} />
 

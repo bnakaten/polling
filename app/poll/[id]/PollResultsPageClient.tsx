@@ -6,6 +6,7 @@ import GenerateTokenForm from "./GenerateTokenForm";
 import DownloadCSV from "./DownloadCSV";
 import CleanUpTokenVotesButton from "./CleanUpTokenVotesButton";
 import CleanUpVotesButton from "./CleanUpVotesButton";
+import FormattedHtml from "../../vote/[token]/FormattedHtml";
 
 interface PollDetails {
   poll: {
@@ -106,7 +107,7 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
             </div>
           </div>
           {poll?.description && (
-            <p className="text-zinc-600 mb-4">{poll.description}</p>
+            <FormattedHtml html={poll.description} className="text-zinc-600 mb-4" />
           )}
           {poll?.imageUrl && (
             <img
@@ -186,7 +187,7 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
                      {result.category && <span className="block text-sm font-medium text-zinc-500 mb-1">{result.category}</span>}
                      {result.text}
                    </h3>
-                   {result.description && <p className="text-sm text-zinc-600 mb-4">{result.description}</p>}
+                    {result.description && <FormattedHtml html={result.description} className="text-sm text-zinc-600 mb-4" />}
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-xs text-zinc-500 bg-zinc-100 px-2 py-1 rounded">
                       {result.answerType === "textarea" ? "Textarea" : result.answerType === "rating" ? "Rating 0-10" : result.answerType === "multirangeslider" ? "Multi-Range Slider" : "Multiple Choice"}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import FormattedHtml from "./FormattedHtml";
 
 interface VoteFormProps {
   poll: any;
@@ -130,7 +131,7 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-sm p-8">
         <h1 className="text-3xl font-bold text-zinc-900 mb-2">{poll.title}</h1>
         {poll.description && (
-          <p className="text-zinc-600 mb-6">{poll.description}</p>
+          <FormattedHtml html={poll.description} className="text-zinc-600 mb-6" />
         )}
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
@@ -165,9 +166,9 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                        <img src={question.imageUrl} alt="Question" className="w-full max-h-96 object-cover rounded-lg" />
                      </div>
                    )}
-                   <h3 className="text-lg font-semibold text-zinc-900">{question.category && <span className="block text-sm font-medium text-zinc-500">{question.category}</span>}{question.text}</h3>
-                   {question.description && <p className="text-sm text-zinc-600">{question.description}</p>}
-                   {multirangesliderDefaults}
+                    <h3 className="text-lg font-semibold text-zinc-900">{question.category && <span className="block text-sm font-medium text-zinc-500">{question.category}</span>}{question.text}</h3>
+                    {question.description && <FormattedHtml html={question.description} className="text-sm text-zinc-600" />}
+                    {multirangesliderDefaults}
                  
                     {question.answerType === "textarea" ? (
                      <div className="space-y-1">
