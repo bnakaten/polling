@@ -101,8 +101,52 @@ if (question?.answerType === "textarea" && isOptional && (responseValue === null
     },
   });
 
+  const tokenWithPoll = await db.token.findUnique({
+    where: { token },
+    include: {
+      poll: {
+        include: {
+          questions: {
+            include: {
+              options: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const answers = responses.reduce((acc, [key, value]) => {
+    const questionId = parseInt(key.replace("question_", ""));
+    const question = tokenWithPoll?.poll.questions.find((q: any) => q.id === questionId);
+    
+    if (!question) return acc;
+
+    if (typeof value !== "string") return acc;
+
+    if (question.answerType === "rating") {
+      acc[questionId] = { value };
+    } else if (question.answerType === "multirangeslider") {
+      const parts = value.split(",");
+      acc[questionId] = {
+        likelihood: parseInt(parts[0]),
+        consequences: parseInt(parts[1]),
+      };
+    } else if (question.answerType === "textarea") {
+      acc[questionId] = { value };
+    } else {
+      const option = question.options.find((o: any) => o.id === parseInt(value));
+      if (option) {
+        acc[questionId] = { option: option.text };
+      }
+    }
+
+    return acc;
+  }, {} as Record<number, any>);
+
   return NextResponse.json({ 
     success: true, 
-    message: "Vote submitted successfully" 
+    message: "Vote submitted successfully",
+    answers,
   });
 }

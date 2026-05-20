@@ -3,6 +3,7 @@
 import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import FormattedHtml from "../FormattedHtml";
+import SuccessPage from "../SuccessPage";
 
 interface VoteQuestionsClientProps {
   poll: any;
@@ -40,6 +41,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [answersLoaded, setAnswersLoaded] = useState(false);
+  const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, any>>({});
   const likelihoodRef = useRef<HTMLInputElement>(null);
   const consequencesRef = useRef<HTMLInputElement>(null);
 

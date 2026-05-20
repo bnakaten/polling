@@ -12,7 +12,6 @@ interface VoteFormProps {
 export default function VoteForm({ poll, token }: VoteFormProps) {
   console.log("VoteForm rendered with token:", token, "poll:", poll.title);
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [multirangeValues, setMultirangeValues] = useState<Record<number, { likelihood: number; consequences: number }>>({});
   const formRef = useRef<HTMLFormElement>(null);
@@ -44,6 +43,12 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
     }
   }, [token]);
 
+  useEffect(() => {
+    if (submittedAnswers && Object.keys(submittedAnswers).length > 0) {
+      localStorage.removeItem(`poll_votes_${token}`);
+    }
+  }, [submittedAnswers, token]);
+
   const handleSliderChange = (questionId: number, value: string) => {
     setSliderValues(prev => ({ ...prev, [questionId]: parseInt(value) }));
   };
@@ -67,6 +72,37 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
 
     const form = e.target as HTMLFormElement;
     const formData = new FormData(form);
+    const newAnswers: Record<number, any> = {};
+    
+    poll.questions.forEach((q: any) => {
+      if (q.answerType === "rating") {
+        const value = sliderValues[q.id];
+        if (value !== undefined) {
+          newAnswers[q.id] = { value };
+        }
+      } else if (q.answerType === "multirangeslider") {
+        const value = multirangeValues[q.id];
+        if (value) {
+          newAnswers[q.id] = {
+            likelihood: value.likelihood,
+            consequences: value.consequences,
+          };
+        }
+      } else if (q.answerType === "textarea") {
+        const textarea = form.querySelector(`textarea[name="question_${q.id}"]`) as HTMLTextAreaElement;
+        if (textarea && textarea.value) {
+          newAnswers[q.id] = { value: textarea.value };
+        }
+      } else {
+        const radio = form.querySelector(`input[name="question_${q.id}"]:checked`) as HTMLInputElement;
+        if (radio) {
+          const option = q.options.find((o: any) => o.id === parseInt(radio.value));
+          if (option) {
+            newAnswers[q.id] = { option: option.text };
+          }
+        }
+      }
+    });
     
     // Explicitly collect and set multirangeslider values from sliders
     const multirangesliderQuestions = poll.questions.filter((q: any) => q.answerType === "multirangeslider");
@@ -92,6 +128,8 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
 
     formData.append("token", token);
 
+    localStorage.setItem(`poll_data_${token}`, JSON.stringify(poll));
+
     try {
       const response = await fetch(`/api/vote/${token}/submit`, {
         method: "POST",
@@ -99,11 +137,9 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
       });
 
       if (response.ok) {
-        setSuccess(true);
-        // Redirect to home page to prevent form re-submission
-        setTimeout(() => {
-          window.location.href = "/";
-        }, 1500);
+        const data = await response.json();
+        const answersParam = encodeURIComponent(JSON.stringify(data.answers));
+        window.location.href = `/vote/${token}/success?answers=${answersParam}`;
       } else {
         const data = await response.json();
         setError(data.error || "Failed to submit vote");
@@ -114,20 +150,6 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
       setSubmitting(false);
     }
   };
-
-  if (success) {
-    return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-8">
-        <div className="max-w-md text-center space-y-4">
-          <h2 className="text-3xl font-bold text-green-600">Vote Submitted</h2>
-          <p className="text-zinc-600">Thank you for your vote!</p>
-          <a href="/" className="inline-block bg-zinc-900 text-white px-6 py-2 rounded-md hover:bg-zinc-800 transition-colors">
-            Return Home
-          </a>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-8">
