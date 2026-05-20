@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import GenerateTokenForm from "./GenerateTokenForm";
 import DownloadCSV from "./DownloadCSV";
+import CleanUpTokenVotesButton from "./CleanUpTokenVotesButton";
+import CleanUpVotesButton from "./CleanUpVotesButton";
 
 interface PollDetails {
   poll: {
@@ -30,6 +32,22 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
 
   const [showVotingLinks, setShowVotingLinks] = useState(false);
   const [pollDetails, setPollDetails] = useState(initialPollDetails);
+
+  const handleTokenCleaned = async () => {
+    const response = await fetch(`/api/polls/${pollId}`);
+    if (response.ok) {
+      const data = await response.json();
+      setPollDetails({ poll: { id: data.poll.id, title: data.poll.title, description: data.poll.description, tokens: data.poll.tokens.map((t: any) => ({ token: t.token, used: t.used, voteCount: t.voteCount, maxVotes: t.maxVotes })) } });
+    }
+  };
+
+  const handlePollCleaned = async () => {
+    const response = await fetch(`/api/polls/${pollId}`);
+    if (response.ok) {
+      const data = await response.json();
+      setPollDetails({ poll: { id: data.poll.id, title: data.poll.title, description: data.poll.description, tokens: data.poll.tokens.map((t: any) => ({ token: t.token, used: t.used, voteCount: t.voteCount, maxVotes: t.maxVotes })) } });
+    }
+  };
 
   if (!initialData.success) {
     return (
@@ -82,7 +100,10 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
         <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
           <div className="flex justify-between items-start mb-4">
             <h1 className="text-2xl font-bold text-zinc-900 mb-2">{poll?.title}</h1>
-            <DownloadCSV pollId={pollId} pollTitle={poll?.title || ""} includeTokens={true} />
+            <div className="flex gap-3">
+              <CleanUpVotesButton pollId={pollId} onCleaned={handlePollCleaned} />
+              <DownloadCSV pollId={pollId} pollTitle={poll?.title || ""} includeTokens={true} />
+            </div>
           </div>
           {poll?.description && (
             <p className="text-zinc-600 mb-4">{poll.description}</p>
@@ -133,6 +154,7 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
                             Expired
                           </span>
                         )}
+                        <CleanUpTokenVotesButton pollId={pollId} token={token.token} onCleaned={handleTokenCleaned} />
                       </div>
                     ))}
                   </div>
