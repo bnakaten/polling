@@ -15,18 +15,27 @@ interface Answers {
   };
 }
 
+interface InitialValues {
+  [questionId: number]: string | number | null;
+}
+
 export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClientProps) {
   const router = useRouter();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answers>(() => {
     const defaults: Answers = {};
+    return defaults;
+  });
+  const [initialValues, setInitialValues] = useState<InitialValues>(() => {
+    const defaults: InitialValues = {};
     poll.questions
       .filter((q: any) => q.answerType === "multirangeslider")
       .forEach((q: any) => {
-        defaults[q.id] = { value: "3,3", answered: true };
+        defaults[q.id] = "3,3";
       });
     return defaults;
   });
+  const [sliderChanged, setSliderChanged] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [answersLoaded, setAnswersLoaded] = useState(false);
@@ -76,17 +85,17 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
         console.error("Failed to parse saved answers");
         setAnswersLoaded(true);
       }
-    } else {
-      const initialAnswers: Record<number, { value: string | number | null; answered: boolean }> = {};
-      questions.forEach((question: any) => {
-        if (question.answerType === "rating") {
-          initialAnswers[question.id] = { value: 5, answered: false };
-        } else if (question.answerType === "multirangeslider") {
-          initialAnswers[question.id] = { value: "3,3", answered: true };
-        }
-      });
-      setAnswers(initialAnswers);
-    }
+      } else {
+        const initialAnswers: Record<number, { value: string | number | null; answered: boolean }> = {};
+        questions.forEach((question: any) => {
+          if (question.answerType === "rating") {
+            initialAnswers[question.id] = { value: 5, answered: false };
+          } else if (question.answerType === "multirangeslider") {
+            initialAnswers[question.id] = { value: "3,3", answered: false };
+          }
+        });
+        setAnswers(initialAnswers);
+      }
   }, [token]);
 
   useEffect(() => {
@@ -128,6 +137,12 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     }
   }, [currentQuestionIndex, currentQuestion.id, answersLoaded]);
 
+  useEffect(() => {
+    if (currentQuestion.answerType === "multirangeslider" && answers[currentQuestion.id]?.answered) {
+      setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
+    }
+  }, [currentQuestionIndex]);
+
   const saveAnswer = (questionId: number, value: string | number | null) => {
     setAnswers(prev => {
       const newAnswers = { ...prev, [questionId]: { value, answered: true } };
@@ -136,7 +151,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     });
   };
 
-  const handleNext = () => {
+   const handleNext = () => {
     console.log("handleNext called, current question:", currentQuestion.id);
     if (currentQuestion.answerType === "textarea") {
       const textarea = document.querySelector(`textarea[name="question_${currentQuestion.id}"]`) as HTMLTextAreaElement;
@@ -153,6 +168,10 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
         saveAnswer(currentQuestion.id, parseInt(slider.value));
       }
     } else if (currentQuestion.answerType === "multirangeslider") {
+      if (!sliderChanged[currentQuestion.id]) {
+        setError("Please adjust the sliders to submit your vote");
+        return;
+      }
       const likelihood = document.querySelector(`input[name="question_${currentQuestion.id}_likelihood"]`) as HTMLInputElement;
       const consequences = document.querySelector(`input[name="question_${currentQuestion.id}_consequences"]`) as HTMLInputElement;
       if (likelihood && consequences) {
@@ -346,12 +365,13 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                         const val = answers[currentQuestion.id]?.value;
                         return val ? parseInt(String(val).split(",")[0]) : 3;
                       })()}
-                     onChange={(e) => {
-                      const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
-                      const parts = saved.split(",");
-                      parts[0] = e.target.value;
-                      saveAnswer(currentQuestion.id, parts.join(","));
-                    }}
+                      onChange={(e) => {
+                        setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
+                        const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
+                        const parts = saved.split(",");
+                        parts[0] = e.target.value;
+                        saveAnswer(currentQuestion.id, parts.join(","));
+                      }}
                     className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-zinc-500 mt-1">
@@ -375,12 +395,13 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                         const val = answers[currentQuestion.id]?.value;
                         return val ? parseInt(String(val).split(",")[1]) : 3;
                       })()}
-                     onChange={(e) => {
-                      const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
-                      const parts = saved.split(",");
-                      parts[1] = e.target.value;
-                      saveAnswer(currentQuestion.id, parts.join(","));
-                    }}
+                      onChange={(e) => {
+                        setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
+                        const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
+                        const parts = saved.split(",");
+                        parts[1] = e.target.value;
+                        saveAnswer(currentQuestion.id, parts.join(","));
+                      }}
                     className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-zinc-500 mt-1">
@@ -442,14 +463,14 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
              Cancel
            </button>
 
-           <button
-             type="button"
-             onClick={handleNext}
-             disabled={submitting}
-             className="ml-auto w-full sm:w-auto bg-zinc-900 text-white px-6 py-3 rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-           >
-             {isLastQuestion ? "Submit Vote" : "Next"}
-           </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={submitting || (currentQuestion.answerType === "multirangeslider" && !sliderChanged[currentQuestion.id])}
+              className="ml-auto w-full sm:w-auto bg-zinc-900 text-white px-6 py-3 rounded-md text-sm font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLastQuestion ? "Submit Vote" : "Next"}
+            </button>
          </div>
 
         <div className="mt-6 pt-6 border-t border-zinc-200 text-center">
