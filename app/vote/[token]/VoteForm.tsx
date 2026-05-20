@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import FormattedHtml from "./FormattedHtml";
+import SuccessPage from "./SuccessPage";
 
 interface VoteFormProps {
   poll: any;
@@ -26,6 +27,8 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
       return acc;
     }, {})
   );
+
+  const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, any>>({});
 
   useEffect(() => {
     const storedValues = localStorage.getItem(`poll_votes_${token}`);
