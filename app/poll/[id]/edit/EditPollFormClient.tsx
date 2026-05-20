@@ -319,10 +319,12 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
            onKeyDown={(e) => {
              if (e.key === "Enter" && !e.shiftKey) {
                e.preventDefault();
+               document.execCommand("insertHTML", false, "<br>");
              }
            }}
            className="block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm min-h-[80px] whitespace-pre-wrap outline-none"
          />
+         <p className="text-xs text-zinc-500 mt-1">Press Enter to add newlines</p>
          <input type="hidden" name="description" ref={descriptionValueInputRef} defaultValue={poll.description || ""} />
        </div>
          </div>
@@ -411,23 +413,25 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
                   <button type="button" onClick={() => document.execCommand("italic")} className="px-2 py-1 text-sm italic hover:bg-zinc-200 rounded transition-colors">I</button>
                   <button type="button" onClick={() => document.execCommand("underline")} className="px-2 py-1 text-sm underline hover:bg-zinc-200 rounded transition-colors">U</button>
                 </div>
-                <div
-                  ref={(el) => {
-                    if (el) {
-                      questionDescriptionRefs.current[questionIndex] = el;
-                    }
-                  }}
-                  id={`question-${questionIndex}-description-editor`}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={(e) => handleDescriptionInput(e, questionIndex)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                    }
-                  }}
-                  className="block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm min-h-[80px] whitespace-pre-wrap outline-none"
-                />
+                 <div
+                   ref={(el) => {
+                     if (el) {
+                       questionDescriptionRefs.current[questionIndex] = el;
+                     }
+                   }}
+                   id={`question-${questionIndex}-description-editor`}
+                   contentEditable
+                   suppressContentEditableWarning
+                   onInput={(e) => handleDescriptionInput(e, questionIndex)}
+                   onKeyDown={(e) => {
+                     if (e.key === "Enter" && !e.shiftKey) {
+                       e.preventDefault();
+                       document.execCommand("insertHTML", false, "<br>");
+                     }
+                   }}
+                   className="block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm min-h-[80px] whitespace-pre-wrap outline-none"
+                 />
+                 <p className="text-xs text-zinc-500 mt-1">Press Enter to add newlines</p>
                 <input type="hidden" name={`question_${questionIndex}_description`} ref={(el) => {
                   if (el) {
                     questionDescriptionValueInputRefs.current[questionIndex] = el;

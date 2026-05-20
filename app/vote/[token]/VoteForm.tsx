@@ -131,7 +131,7 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-sm p-8">
         <h1 className="text-3xl font-bold text-zinc-900 mb-2">{poll.title}</h1>
         {poll.description && (
-          <FormattedHtml html={poll.description} className="text-zinc-600 mb-6" />
+          <FormattedHtml html={poll.description} className="text-zinc-700 mb-6 text-base" />
         )}
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
@@ -166,21 +166,22 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                        <img src={question.imageUrl} alt="Question" className="w-full max-h-96 object-cover rounded-lg" />
                      </div>
                    )}
-                    <h3 className="text-lg font-semibold text-zinc-900">{question.category && <span className="block text-sm font-medium text-zinc-500">{question.category}</span>}{question.text}</h3>
-                    {question.description && <FormattedHtml html={question.description} className="text-sm text-zinc-600" />}
+                     <h3 className="text-xl font-semibold text-zinc-900">{question.category && <span className="block text-base font-medium text-zinc-600">{question.category}</span>}{question.text}</h3>
+                      {question.description && <FormattedHtml html={question.description} className="text-zinc-700 mb-4" />}
                     {multirangesliderDefaults}
                  
                     {question.answerType === "textarea" ? (
-                     <div className="space-y-1">
-                       <div className="flex items-center gap-2">
-                         <textarea
-                           name={`question_${question.id}`}
-                           rows={4}
-                           required={!question.isOptional}
-                           className={`block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm text-zinc-700 ${question.isOptional ? 'border-zinc-300' : 'border-zinc-900'}`}
-                           placeholder="Type your answer here..."
-                         />
-                       </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <textarea
+                            name={`question_${question.id}`}
+                            rows={4}
+                            required={!question.isOptional}
+                            className={`block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm text-zinc-700 ${question.isOptional ? 'border-zinc-300' : 'border-zinc-900'}`}
+                            placeholder="Type your answer here..."
+                            style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+                          />
+                        </div>
                        {question.isOptional && (
                          <p className="text-xs text-zinc-500">Optional — leave empty if you prefer not to answer</p>
                        )}

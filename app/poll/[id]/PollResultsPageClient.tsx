@@ -106,9 +106,9 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
               <DownloadCSV pollId={pollId} pollTitle={poll?.title || ""} includeTokens={true} />
             </div>
           </div>
-          {poll?.description && (
-            <FormattedHtml html={poll.description} className="text-zinc-600 mb-4" />
-          )}
+           {poll?.description && (
+             <FormattedHtml html={poll.description} className="text-zinc-700 mb-4 text-base prose prose-sm" />
+           )}
           {poll?.imageUrl && (
             <img
               src={poll.imageUrl}
@@ -187,7 +187,7 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
                      {result.category && <span className="block text-sm font-medium text-zinc-500 mb-1">{result.category}</span>}
                      {result.text}
                    </h3>
-                    {result.description && <FormattedHtml html={result.description} className="text-sm text-zinc-600 mb-4" />}
+                     {result.description && <FormattedHtml html={result.description} className="text-zinc-700 mb-4 text-base prose prose-sm" />}
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-xs text-zinc-500 bg-zinc-100 px-2 py-1 rounded">
                       {result.answerType === "textarea" ? "Textarea" : result.answerType === "rating" ? "Rating 0-10" : result.answerType === "multirangeslider" ? "Multi-Range Slider" : "Multiple Choice"}
