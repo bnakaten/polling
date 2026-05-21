@@ -42,10 +42,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     console.log("=== Results endpoint ===");
     console.log("Poll ID:", pollId);
     console.log("Poll found:", !!poll);
-    if (poll) {
-      console.log("Questions:", poll.questions.length);
+    console.log("Questions loaded:", poll?.questions?.length || 0);
+    if (poll && poll.questions) {
       poll.questions.forEach((q: any) => {
-        console.log(`Question ${q.id}: ${q.text} - Options: ${q.options.length}, Total responses: ${q.options.reduce((sum: number, opt: any) => sum + opt.responses.length, 0)}`);
+        console.log(`Question ${q.id}: ${q.text} - answerType: ${q.answerType}, isOptional: ${q.isOptional}`);
+        console.log(`  Options: ${q.options.length}, Option responses: ${q.options.reduce((sum: number, opt: any) => sum + opt.responses.length, 0)}`);
+        console.log(`  Direct question.responses: ${q.responses.length}`);
       });
     }
 
@@ -57,11 +59,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: "Not authorized" }, { status: 403 });
     }
 
-     const results = poll.questions.map((question: any) => {
-       const needsOptions = question.answerType === "default" || !question.answerType;
-       
+      const results = poll.questions.map((question: any) => {
+        const needsOptions = question.answerType === "default" || !question.answerType;
+        
         if (needsOptions) {
-          const skippedResponses = question.responses.filter((r: any) => r.text === "skipped");
+        console.log("DEBUG: Question", question.id, "answerType:", question.answerType, "isOptional:", question.isOptional);
+        console.log("DEBUG: Question", question.id, "all responses:", question.responses.map((r: any) => ({ id: r.id, text: r.text, optionId: r.optionId })));
+        const skippedResponses = question.responses.filter((r: any) => r.text === "skipped");
+          console.log("DEBUG: Question", question.id, "skippedResponses:", skippedResponses.length, skippedResponses);
           return {
             questionId: question.id,
             text: question.text,
@@ -78,9 +83,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             skippedCount: skippedResponses.length,
           };
         }
-      
-      // For non-default questions (rating, textarea), count total responses
-       const totalResponses = question.responses.length;
+        
+        // For non-default questions (rating, textarea), count total responses
+        const totalResponses = question.responses.length;
       
       if (question.answerType === "rating") {
         const skippedResponses = question.responses.filter((r: any) => r.text === "skipped");

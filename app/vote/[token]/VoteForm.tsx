@@ -383,22 +383,22 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                            </span>
                          </div>
                        </div>
-                     ) : (
-                    <div className="space-y-2">
-                      {question.options.map((option: any) => (
-                        <label key={option.id} className="flex items-center space-x-3 cursor-pointer">
-                          <input
-                            type="radio"
-                            name={`question_${question.id}`}
-                            value={option.id}
-                            required
-                            className="h-4 w-4 text-zinc-900 border-zinc-300 focus:ring-zinc-600"
-                          />
-                          <span className="text-zinc-700">{option.text}</span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
+                      ) : (
+                     <div className="space-y-2">
+                       {question.options.map((option: any) => (
+                         <label key={option.id} className="flex items-center space-x-3 cursor-pointer">
+                           <input
+                             type="radio"
+                             name={`question_${question.id}`}
+                             value={option.id}
+                             required={!question.isOptional}
+                             className="h-4 w-4 text-zinc-900 border-zinc-300 focus:ring-zinc-600"
+                           />
+                           <span className="text-zinc-700">{option.text}</span>
+                         </label>
+                       ))}
+                     </div>
+                   )}
                </div>
              );
           })}

@@ -74,6 +74,7 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
     const needsOptions = question.answerType === "default" || !question.answerType;
     
     if (needsOptions) {
+      const skippedResponses = question.responses.filter((r: any) => r.text === "skipped");
       return {
         questionId: question.id,
         text: question.text,
@@ -87,13 +88,16 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
           text: option.text,
           count: option.responses.length,
         })),
+        skippedCount: skippedResponses.length,
       };
     }
     
     const totalResponses = question.responses.length;
+    const skippedResponses = question.responses.filter((r: any) => r.text === "skipped");
     
     if (question.answerType === "rating") {
-      const responseValues = question.responses.map((r: any) => parseInt(r.text || "0"));
+      const nonSkippedResponses = question.responses.filter((r: any) => r.text !== "skipped");
+      const responseValues = nonSkippedResponses.map((r: any) => parseInt(r.text || "0"));
 
       const ratingCounts: Record<string, number> = {};
       responseValues.forEach((val: number) => {
@@ -118,13 +122,13 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
         isOptional: question.isOptional,
         imageUrl: question.imageUrl,
         options: ratingOptions,
-        individualResponses: question.responses.map((r: any) => r.text),
+        skippedCount: skippedResponses.length,
+        individualResponses: nonSkippedResponses.map((r: any) => r.text),
       };
     }
 
     if (question.answerType === "multirangeslider") {
-      const responsePairs = question.responses.map((r: any) => r.text).filter((t: string) => t && t !== "skipped");
-      const skippedCount = question.responses.filter((r: any) => r.text === "skipped").length;
+      const responsePairs = question.responses.filter((r: any) => r.text !== "skipped").map((r: any) => r.text).filter(Boolean);
 
       const pairCounts: Record<string, number> = {};
       responsePairs.forEach((pair: string) => {
@@ -132,7 +136,6 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
       });
 
       const likelihoodLabels: Record<string, string> = {
-        "0": "0 Not likely",
         "1": "1 Not likely",
         "2": "2 Low likely",
         "3": "3 Likely",
@@ -140,7 +143,6 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
         "5": "5 Near certainty"
       };
       const consequencesLabels: Record<string, string> = {
-        "0": "0 Minimal",
         "1": "1 Minimal",
         "2": "2 Minor",
         "3": "3 Medium",
@@ -163,11 +165,11 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
           };
         });
 
-      if (skippedCount > 0) {
+      if (skippedResponses.length > 0) {
         multirangeOptions.push({
           optionId: 0,
           text: "Skipped (did not answer)",
-          count: skippedCount,
+          count: skippedResponses.length,
         });
       }
 
@@ -180,10 +182,12 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
         isOptional: question.isOptional,
         imageUrl: question.imageUrl,
         options: multirangeOptions.length > 0 ? multirangeOptions : [{ optionId: 0, text: "No responses yet", count: 0 }],
+        skippedCount: skippedResponses.length,
         individualResponses: responsePairs,
       };
     }
     
+    // Textarea
     return {
       questionId: question.id,
       text: question.text,
@@ -199,7 +203,8 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
           count: totalResponses,
         },
       ],
-      individualResponses: question.responses.map((r: any) => r.text),
+      skippedCount: skippedResponses.length,
+      individualResponses: question.responses.filter((r: any) => r.text !== "skipped").map((r: any) => r.text),
     };
   });
 
