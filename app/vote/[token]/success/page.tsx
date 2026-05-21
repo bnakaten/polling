@@ -1,8 +1,8 @@
 import SuccessPageClient from "../SuccessPageClient";
 
-export default async function SuccessPage({ params, searchParams }: { params: Promise<{ token: string }>, searchParams: { answers?: string } }) {
+export default async function SuccessPage({ params, searchParams }: { params: Promise<{ token: string }>, searchParams: Promise<{ answers?: string }> }) {
   const { token } = await params;
-  const answersParam = searchParams?.answers;
+  const { answers: answersParam } = await searchParams;
   
   let answers: Record<number, any> = {};
   

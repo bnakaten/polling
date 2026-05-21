@@ -160,31 +160,34 @@ if (tokenRecord.voteCount >= tokenRecord.maxVotes) {
     
     if (!question) return acc;
 
-    if (typeof value !== "string") return acc;
+    const stringValue = String(value ?? "");
 
     if (question.answerType === "rating") {
-      acc[questionId] = { value };
+      acc[questionId] = { value: stringValue };
     } else if (question.answerType === "multirangeslider") {
-      const parts = value.split(",");
+      const parts = stringValue.split(",");
       acc[questionId] = {
         likelihood: parseInt(parts[0]),
         consequences: parseInt(parts[1]),
       };
     } else if (question.answerType === "textarea") {
-      acc[questionId] = { value };
+      acc[questionId] = { value: stringValue };
     } else {
-      const option = question.options.find((o: any) => o.id === parseInt(value));
+      const option = question.options.find((o: any) => o.id === parseInt(stringValue));
       if (option) {
         acc[questionId] = { option: option.text };
       }
     }
 
     return acc;
-  }, {} as Record<number, any>);
+   }, {} as Record<number, any>);
 
-  return NextResponse.json({ 
-    success: true, 
-    message: "Vote submitted successfully",
-    answers,
-  });
-}
+   console.log("=== Returning answers ===");
+   console.log(answers);
+
+   return NextResponse.json({ 
+     success: true, 
+     message: "Vote submitted successfully",
+     answers,
+   });
+ }
