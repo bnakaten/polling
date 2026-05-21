@@ -61,14 +61,13 @@ export async function POST(
       },
     });
 
-    await db.token.update({
+    await db.token.delete({
       where: { token },
-      data: { voteCount: 0 },
     });
 
     return NextResponse.json({ 
       success: true, 
-      message: "Votes for this token have been removed" 
+      message: "Votes and voting link have been removed" 
     });
   } catch (error) {
     return NextResponse.json({ error: "Failed to clean up votes" }, { status: 500 });

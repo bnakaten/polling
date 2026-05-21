@@ -50,12 +50,11 @@ export async function POST(
       },
     });
 
-    await db.token.updateMany({
+    await db.token.deleteMany({
       where: { pollId: pollId },
-      data: { voteCount: 0 },
     });
 
-    return NextResponse.json({ success: true, message: "All vote responses have been removed" });
+    return NextResponse.json({ success: true, message: "All vote responses and voting links have been removed" });
   } catch (error) {
     return NextResponse.json({ error: "Failed to clean up votes" }, { status: 500 });
   }
