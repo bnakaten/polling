@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import DeletePollButton from "./DeletePollButton";
 import CleanUpImagesButton from "./CleanUpImagesButton";
+import FormattedHtml from "../vote/[token]/FormattedHtml";
 
 
 export default async function DashboardPage() {
@@ -95,7 +96,7 @@ export default async function DashboardPage() {
               <div key={poll.id} className="bg-white rounded-lg shadow-sm p-6">
                 <h3 className="text-lg font-semibold text-zinc-900 mb-2">{poll.title}</h3>
                 {poll.description && (
-                  <p className="text-sm text-zinc-600 mb-4">{poll.description}</p>
+                  <FormattedHtml html={poll.description} className="text-zinc-700 mb-4 text-base prose prose-sm" />
                 )}
                  <div className="space-y-2 text-sm text-zinc-600">
                    <div className="flex justify-between">
