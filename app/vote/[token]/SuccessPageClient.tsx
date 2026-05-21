@@ -19,9 +19,6 @@ export default function SuccessPageClient({ token, answers }: SuccessPageClientP
         <div className="max-w-md text-center space-y-4">
           <h2 className="text-3xl font-bold text-zinc-900">Vote Submitted</h2>
           <p className="text-zinc-600">Thank you for your feedback!</p>
-          <a href="/" className="inline-block bg-zinc-900 text-white px-6 py-3 rounded-md hover:bg-zinc-800 transition-colors">
-            Return Home
-          </a>
         </div>
       </div>
     );
@@ -100,14 +97,7 @@ export default function SuccessPageClient({ token, answers }: SuccessPageClientP
           })}
         </div>
 
-        <div className="mt-8 text-center">
-          <a
-            href="/"
-            className="inline-block bg-zinc-900 text-white px-6 py-3 rounded-md hover:bg-zinc-800 transition-colors"
-          >
-            Return Home
-          </a>
-        </div>
+
       </div>
     </div>
   );

@@ -252,7 +252,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
 
       if (response.ok) {
         sessionStorage.removeItem(`poll_answers_${token}`);
-        router.push("/");
+        router.push(`/vote/${token}/success`);
       } else {
         const data = await response.json();
         setError(data.error || "Failed to submit vote");

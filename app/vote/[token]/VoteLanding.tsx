@@ -32,7 +32,7 @@ export default function VoteLanding({ poll, token }: VoteLandingProps) {
       });
 
       if (response.ok) {
-        window.location.href = "/";
+        window.location.href = `/vote/${token}/success`;
       } else {
         const data = await response.json();
         setError(data.error || "Failed to submit vote");
