@@ -95,6 +95,8 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
             initialAnswers[question.id] = { value: 5, answered: false };
           } else if (question.answerType === "multirangeslider") {
             initialAnswers[question.id] = { value: "0,0", answered: false };
+          } else if (question.answerType === "default" && question.isOptional) {
+            initialAnswers[question.id] = { value: null, answered: false };
           }
         });
         setAnswers(initialAnswers);
