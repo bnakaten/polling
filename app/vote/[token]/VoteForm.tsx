@@ -28,6 +28,9 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
   );
 
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, any>>({});
+  const [textareaInteracted, setTextareaInteracted] = useState<Record<number, boolean>>({});
+  const [ratingInteracted, setRatingInteracted] = useState<Record<number, boolean>>({});
+  const [multirangeInteracted, setMultirangeInteracted] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     const storedValues = localStorage.getItem(`poll_votes_${token}`);
@@ -35,7 +38,18 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
       try {
         const parsed = JSON.parse(storedValues);
         if (parsed.multirangeValues) {
-          setMultirangeValues(parsed.multirangeValues);
+          const parsedValues = parsed.multirangeValues;
+          Object.keys(parsedValues).forEach((key: string) => {
+            const questionId = parseInt(key);
+            const value = parsedValues[questionId];
+            if (value) {
+              parsedValues[questionId] = {
+                likelihood: value.likelihood ?? 0,
+                consequences: value.consequences ?? 0
+              };
+            }
+          });
+          setMultirangeValues(parsedValues);
         }
       } catch (e) {
         console.error("Failed to parse stored vote values:", e);
@@ -51,6 +65,7 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
 
   const handleSliderChange = (questionId: number, value: string) => {
     setSliderValues(prev => ({ ...prev, [questionId]: parseInt(value) }));
+    setRatingInteracted(prev => ({ ...prev, [questionId]: true }));
   };
 
   const setMultirangesliderValue = (questionId: number, likelihood: string, consequences: string) => {
@@ -63,6 +78,7 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
 
   const handleMultiRangeChange = (questionId: number, likelihood: number, consequences: number) => {
     setMultirangeValues(prev => ({ ...prev, [questionId]: { likelihood, consequences } }));
+    setMultirangeInteracted(prev => ({ ...prev, [questionId]: true }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,15 +120,73 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
       }
     });
     
+    // Debug: log all form data before modifications
+    console.log("=== Form Data Before Modifications ===");
+    formData.forEach((value, key) => {
+      if (key.startsWith("question_")) {
+        console.log(`  ${key}: "${value}"`);
+      }
+    });
+    
     // Explicitly collect and set multirangeslider values from sliders
     const multirangesliderQuestions = poll.questions.filter((q: any) => q.answerType === "multirangeslider");
     multirangesliderQuestions.forEach((question: any) => {
       const likelihood = form.querySelector(`input[name="question_${question.id}_likelihood"]`) as HTMLInputElement;
       const consequences = form.querySelector(`input[name="question_${question.id}_consequences"]`) as HTMLInputElement;
       if (likelihood && consequences) {
-        const value = `${likelihood.value || "3"},${consequences.value || "3"}`;
-        formData.set(`question_${question.id}`, value);
-        console.log(`Setting question_${question.id} to "${value}"`);
+        const value = `${likelihood.value || "0"},${consequences.value || "0"}`;
+        
+        if (question.isOptional && !multirangeInteracted[question.id] && value === "0,0") {
+          formData.set(`question_${question.id}`, "skipped");
+          console.log(`Setting question_${question.id} to "skipped" (optional, not interacted)`);
+        } else {
+          formData.set(`question_${question.id}`, value);
+          console.log(`Setting question_${question.id} to "${value}"`);
+        }
+      }
+    });
+    
+    // Handle optional multiple choice questions that were skipped
+    const multipleChoiceQuestions = poll.questions.filter((q: any) => q.answerType === "default" || !q.answerType);
+    multipleChoiceQuestions.forEach((question: any) => {
+      if (question.isOptional) {
+        const radio = form.querySelector(`input[name="question_${question.id}"]:checked`) as HTMLInputElement;
+        if (!radio) {
+          formData.set(`question_${question.id}`, "skipped");
+          console.log(`Setting question_${question.id} to "skipped" (optional multiple choice, not selected)`);
+        }
+      }
+    });
+    
+    // Handle optional textarea questions that were skipped
+    const textareaQuestions = poll.questions.filter((q: any) => q.answerType === "textarea");
+    textareaQuestions.forEach((question: any) => {
+      if (question.isOptional) {
+        const textarea = form.querySelector(`textarea[name="question_${question.id}"]`) as HTMLTextAreaElement;
+        if (textarea && textarea.value === "") {
+          formData.set(`question_${question.id}`, "skipped");
+          console.log(`Setting question_${question.id} to "skipped" (optional, empty)`);
+        }
+      }
+    });
+    
+    // Handle optional rating questions that were skipped
+    const ratingQuestions = poll.questions.filter((q: any) => q.answerType === "rating");
+    ratingQuestions.forEach((question: any) => {
+      if (question.isOptional) {
+        const slider = form.querySelector(`input[name="question_${question.id}"]`) as HTMLInputElement;
+        if (slider && slider.value === "5") {
+          formData.set(`question_${question.id}`, "skipped");
+          console.log(`Setting question_${question.id} to "skipped" (optional, default value)`);
+        }
+      }
+    });
+    
+    // Debug: log all form data after modifications
+    console.log("=== Form Data After Modifications ===");
+    formData.forEach((value, key) => {
+      if (key.startsWith("question_")) {
+        console.log(`  ${key}: "${value}"`);
       }
     });
     
@@ -181,7 +255,7 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                 }
                 
                 const multirangesliderDefaults = question.answerType === "multirangeslider" ? (
-                  <input type="hidden" name={`question_${question.id}`} defaultValue={`${multirangeValues[question.id]?.likelihood ?? 3},${multirangeValues[question.id]?.consequences ?? 3}`} />
+                  <input type="hidden" name={`question_${question.id}`} defaultValue={`${multirangeValues[question.id]?.likelihood ?? 0},${multirangeValues[question.id]?.consequences ?? 0}`} />
                 ) : null;
                 
                 return (
@@ -205,6 +279,7 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                             className={`block w-full px-3 py-2 border border-zinc-300 rounded-md shadow-sm focus:outline-none focus:ring-zinc-500 focus:border-zinc-500 sm:text-sm text-zinc-700 ${question.isOptional ? 'border-zinc-300' : 'border-zinc-900'}`}
                             placeholder="Type your answer here..."
                             style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+                            onChange={() => setTextareaInteracted(prev => ({ ...prev, [question.id]: true }))}
                           />
                         </div>
                        {question.isOptional && (
@@ -216,15 +291,18 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                        <div className="flex-1 space-y-2">
                          <div className="relative">
 <input
-                              type="range"
-                              name={`question_${question.id}`}
-                              min="0"
-                              max="10"
-                              value={sliderValues[question.id] ?? 5}
-                              required
-                              onChange={(e) => handleSliderChange(question.id, e.target.value)}
-                              className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
-                            />
+                               type="range"
+                               name={`question_${question.id}`}
+                               min="0"
+                               max="10"
+                               value={sliderValues[question.id] ?? 5}
+                               required
+                               onChange={(e) => {
+                                 handleSliderChange(question.id, e.target.value);
+                                 setRatingInteracted(prev => ({ ...prev, [question.id]: true }));
+                               }}
+                               className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
+                             />
                            <div className="flex justify-between text-xs text-zinc-500">
                              <span>0</span>
                              <span>5</span>
@@ -250,12 +328,12 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                            <input
                              type="range"
                              name={`question_${question.id}_likelihood`}
-                             min="1"
-                             max="5"
-                             value={multirangeValues[question.id]?.likelihood ?? 3}
-                             onChange={(e) => {
-                               const likelihood = parseInt(e.target.value);
-                               const consequences = multirangeValues[question.id]?.consequences ?? 3;
+                              min="0"
+                              max="5"
+                              value={multirangeValues[question.id]?.likelihood ?? 0}
+                              onChange={(e) => {
+                                const likelihood = parseInt(e.target.value);
+                                const consequences = multirangeValues[question.id]?.consequences ?? 0;
                                handleMultiRangeChange(question.id, likelihood, consequences);
                                const formElement = formRef.current;
                                if (formElement) {
@@ -265,25 +343,24 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                              }}
                              className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                            />
-                           <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                             <span>1 Not likely</span>
-                             <span>2 Low likely</span>
-                             <span>3 Likely</span>
-                             <span>4 Highly likely</span>
-                             <span>5 Near certainty</span>
-                           </div>
+                            <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                              <span>0 Not likely</span>
+                              <span>2 Low likely</span>
+                              <span>4 Likely</span>
+                              <span>5 Near certainty</span>
+                            </div>
                          </div>
                          <div>
                            <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
                            <input
                              type="range"
                              name={`question_${question.id}_consequences`}
-                             min="1"
-                             max="5"
-                             value={multirangeValues[question.id]?.consequences ?? 3}
-                             onChange={(e) => {
-                               const likelihood = multirangeValues[question.id]?.likelihood ?? 3;
-                               const consequences = parseInt(e.target.value);
+                              min="0"
+                              max="5"
+                              value={multirangeValues[question.id]?.consequences ?? 0}
+                              onChange={(e) => {
+                                const likelihood = multirangeValues[question.id]?.likelihood ?? 0;
+                                const consequences = parseInt(e.target.value);
                                handleMultiRangeChange(question.id, likelihood, consequences);
                                const formElement = formRef.current;
                                if (formElement) {
@@ -293,17 +370,16 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                              }}
                              className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                            />
-                           <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                             <span>1 Minimal</span>
-                             <span>2 Minor</span>
-                             <span>3 Medium</span>
-                             <span>4 Major</span>
-                             <span>5 Critical</span>
-                           </div>
+                            <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                              <span>0 Minimal</span>
+                              <span>2 Minor</span>
+                              <span>4 Major</span>
+                              <span>5 Critical</span>
+                            </div>
                          </div>
                          <div className="text-center">
                            <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
-                             <span className="likelihood-value">{multirangeValues[question.id]?.likelihood ?? 3}</span> / <span className="consequences-value">{multirangeValues[question.id]?.consequences ?? 3}</span>
+                              <span className="likelihood-value">{multirangeValues[question.id]?.likelihood ?? 0}</span> / <span className="consequences-value">{multirangeValues[question.id]?.consequences ?? 0}</span>
                            </span>
                          </div>
                        </div>

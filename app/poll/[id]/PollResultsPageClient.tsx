@@ -198,25 +198,32 @@ export default function PollResultsPageClient({ pollId, initialData, initialPoll
                       </span>
                     )}
                   </div>
-                     <div className="space-y-3">
-                       {result.options.map((option: any, index: number) => (
-                        <div key={`${option.optionId}-${index}`}>
-                         <div className="flex justify-between mb-1">
-                           <span className="text-sm font-medium text-zinc-900">{option.text}</span>
-                           <span className="text-sm text-zinc-600">
-                             {option.count} vote{option.count !== 1 ? "s" : ""}
-                           </span>
-                         </div>
-                         {!isTextarea && maxCount > 0 && (
-                           <div className="w-full bg-zinc-200 rounded-full h-2">
-                             <div
-                               className="bg-zinc-900 h-2 rounded-full"
-                               style={{ width: `${(option.count / maxCount) * 100}%` }}
-                             />
-                           </div>
-                         )}
-                       </div>
-                     ))}
+                      <div className="space-y-3">
+                        {result.skippedCount && result.skippedCount > 0 && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded p-3 mb-3">
+                            <span className="text-sm text-yellow-800">
+                              Skipped: {result.skippedCount} vote{result.skippedCount !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                        )}
+                        {result.options.map((option: any, index: number) => (
+                         <div key={`${option.optionId}-${index}`}>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-sm font-medium text-zinc-900">{option.text}</span>
+                            <span className="text-sm text-zinc-600">
+                              {option.count} vote{option.count !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          {!isTextarea && maxCount > 0 && (
+                            <div className="w-full bg-zinc-200 rounded-full h-2">
+                              <div
+                                className="bg-zinc-900 h-2 rounded-full"
+                                style={{ width: `${(option.count / maxCount) * 100}%` }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     {(isTextarea || isRating) && result.individualResponses && result.individualResponses.length > 0 && (
                       <div className="mt-4 space-y-2">
                         <h4 className="text-sm font-medium text-zinc-900">Responses ({result.individualResponses.length} total):</h4>

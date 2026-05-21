@@ -123,7 +123,8 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
     }
 
     if (question.answerType === "multirangeslider") {
-      const responsePairs = question.responses.map((r: any) => r.text).filter(Boolean);
+      const responsePairs = question.responses.map((r: any) => r.text).filter((t: string) => t && t !== "skipped");
+      const skippedCount = question.responses.filter((r: any) => r.text === "skipped").length;
 
       const pairCounts: Record<string, number> = {};
       responsePairs.forEach((pair: string) => {
@@ -131,6 +132,7 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
       });
 
       const likelihoodLabels: Record<string, string> = {
+        "0": "0 Not likely",
         "1": "1 Not likely",
         "2": "2 Low likely",
         "3": "3 Likely",
@@ -138,6 +140,7 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
         "5": "5 Near certainty"
       };
       const consequencesLabels: Record<string, string> = {
+        "0": "0 Minimal",
         "1": "1 Minimal",
         "2": "2 Minor",
         "3": "3 Medium",
@@ -159,6 +162,14 @@ export default async function PollResultsPage({ params }: { params: Promise<{ id
             count: pairCounts[pair],
           };
         });
+
+      if (skippedCount > 0) {
+        multirangeOptions.push({
+          optionId: 0,
+          text: "Skipped (did not answer)",
+          count: skippedCount,
+        });
+      }
 
       return {
         questionId: question.id,

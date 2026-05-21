@@ -33,7 +33,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     poll.questions
       .filter((q: any) => q.answerType === "multirangeslider")
       .forEach((q: any) => {
-        defaults[q.id] = "3,3";
+        defaults[q.id] = "0,0";
       });
     return defaults;
   });
@@ -94,7 +94,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
           if (question.answerType === "rating") {
             initialAnswers[question.id] = { value: 5, answered: false };
           } else if (question.answerType === "multirangeslider") {
-            initialAnswers[question.id] = { value: "3,3", answered: false };
+            initialAnswers[question.id] = { value: "0,0", answered: false };
           }
         });
         setAnswers(initialAnswers);
@@ -119,12 +119,12 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     }
   }, [token, currentQuestionIndex]);
 
-   useLayoutEffect(() => {
-    if (currentQuestion.answerType === "multirangeslider" && likelihoodRef.current && consequencesRef.current) {
-      const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
-      const parts = saved.split(",");
-      const likelihoodVal = parseInt(parts[0]) || 3;
-      const consequencesVal = parseInt(parts[1]) || 3;
+    useLayoutEffect(() => {
+     if (currentQuestion.answerType === "multirangeslider" && likelihoodRef.current && consequencesRef.current) {
+       const saved = String(answers[currentQuestion.id]?.value ?? "0,0");
+       const parts = saved.split(",");
+       const likelihoodVal = parseInt(parts[0]) || 0;
+       const consequencesVal = parseInt(parts[1]) || 0;
       
       likelihoodRef.current.value = String(likelihoodVal);
       consequencesRef.current.value = String(consequencesVal);
@@ -140,11 +140,13 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     }
   }, [currentQuestionIndex, currentQuestion.id, answersLoaded]);
 
-  useEffect(() => {
-    if (currentQuestion.answerType === "multirangeslider" && answers[currentQuestion.id]?.answered) {
-      setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
-    }
-  }, [currentQuestionIndex]);
+   useEffect(() => {
+     if (currentQuestion.answerType === "multirangeslider") {
+       if (answers[currentQuestion.id]?.answered || currentQuestion.isOptional) {
+         setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
+       }
+     }
+   }, [currentQuestionIndex]);
 
   const saveAnswer = (questionId: number, value: string | number | null) => {
     setAnswers(prev => {
@@ -171,14 +173,14 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
         saveAnswer(currentQuestion.id, parseInt(slider.value));
       }
     } else if (currentQuestion.answerType === "multirangeslider") {
-      if (!sliderChanged[currentQuestion.id]) {
+      if (!currentQuestion.isOptional && !sliderChanged[currentQuestion.id]) {
         setError("Please adjust the sliders to submit your vote");
         return;
       }
       const likelihood = document.querySelector(`input[name="question_${currentQuestion.id}_likelihood"]`) as HTMLInputElement;
       const consequences = document.querySelector(`input[name="question_${currentQuestion.id}_consequences"]`) as HTMLInputElement;
       if (likelihood && consequences) {
-        const value = `${likelihood.value},${consequences.value}`;
+        const value = `${likelihood.value || "0"},${consequences.value || "0"}`;
         console.log("Saving multirangeslider answer for", currentQuestion.id, ":", value);
         saveAnswer(currentQuestion.id, value);
       }
@@ -220,13 +222,19 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
       .filter((q: any) => q.answerType === "multirangeslider")
       .forEach((q: any) => {
         if (!submitAnswers[q.id]) {
-          submitAnswers[q.id] = { value: "3,3", answered: true };
+          submitAnswers[q.id] = { value: "0,0", answered: true };
         }
       });
 
     for (const [questionId, answer] of Object.entries(submitAnswers)) {
-      if (answer.answered && answer.value !== null) {
-        if (currentQuestion.answerType === "rating" || typeof answer.value === "number") {
+      const question = poll.questions.find((q: any) => q.id === parseInt(questionId));
+      if (!question) continue;
+      
+      if (question.isOptional && (answer.value === null || answer.value === "0,0" || answer.value === "")) {
+        formData.append(`question_${questionId}`, "skipped");
+        console.log(`Setting question_${questionId} to "skipped" (optional, not answered)`);
+      } else if (answer.answered && answer.value !== null && answer.value !== "0,0" && answer.value !== "") {
+        if (question.answerType === "rating" || typeof answer.value === "number") {
           formData.append(`question_${questionId}`, answer.value.toString());
         } else {
           formData.append(`question_${questionId}`, answer.value);
@@ -362,27 +370,26 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                      key={`likelihood-${currentQuestion.id}`}
                      type="range"
                      name={`question_${currentQuestion.id}_likelihood`}
-                     min="1"
-                     max="5"
-                      defaultValue={(() => {
-                        const val = answers[currentQuestion.id]?.value;
-                        return val ? parseInt(String(val).split(",")[0]) : 3;
-                      })()}
-                      onChange={(e) => {
-                        setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
-                        const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
-                        const parts = saved.split(",");
-                        parts[0] = e.target.value;
-                        saveAnswer(currentQuestion.id, parts.join(","));
-                      }}
+                      min="0"
+                      max="5"
+                       defaultValue={(() => {
+                         const val = answers[currentQuestion.id]?.value;
+                         return val ? parseInt(String(val).split(",")[0]) : 0;
+                       })()}
+                       onChange={(e) => {
+                         setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
+                         const saved = String(answers[currentQuestion.id]?.value ?? "0,0");
+                         const parts = saved.split(",");
+                         parts[0] = e.target.value;
+                         saveAnswer(currentQuestion.id, parts.join(","));
+                       }}
                     className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                    <span>1 Not likely</span>
-                    <span>2 Low likely</span>
-                    <span>3 Likely</span>
-                    <span>4 Highly likely</span>
-                    <span>5 Near certainty</span>
+                      <span>0 Not likely</span>
+                      <span>2 Low likely</span>
+                      <span>4 Likely</span>
+                      <span>5 Near certainty</span>
                   </div>
                 </div>
                 <div>
@@ -392,35 +399,34 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                      key={`consequences-${currentQuestion.id}`}
                      type="range"
                      name={`question_${currentQuestion.id}_consequences`}
-                     min="1"
-                     max="5"
-                      defaultValue={(() => {
-                        const val = answers[currentQuestion.id]?.value;
-                        return val ? parseInt(String(val).split(",")[1]) : 3;
-                      })()}
-                      onChange={(e) => {
-                        setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
-                        const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
-                        const parts = saved.split(",");
-                        parts[1] = e.target.value;
-                        saveAnswer(currentQuestion.id, parts.join(","));
-                      }}
+                      min="0"
+                      max="5"
+                       defaultValue={(() => {
+                         const val = answers[currentQuestion.id]?.value;
+                         return val ? parseInt(String(val).split(",")[1]) : 0;
+                       })()}
+                       onChange={(e) => {
+                         setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
+                         const saved = String(answers[currentQuestion.id]?.value ?? "0,0");
+                         const parts = saved.split(",");
+                         parts[1] = e.target.value;
+                         saveAnswer(currentQuestion.id, parts.join(","));
+                       }}
                     className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                    <span>1 Minimal</span>
-                    <span>2 Minor</span>
-                    <span>3 Medium</span>
-                    <span>4 Major</span>
-                    <span>5 Critical</span>
+                      <span>0 Minimal</span>
+                      <span>2 Minor</span>
+                      <span>4 Major</span>
+                      <span>5 Critical</span>
                   </div>
                 </div>
                 <div className="text-center">
                   <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
                     {(() => {
-                      const saved = String(answers[currentQuestion.id]?.value ?? "3,3");
+                      const saved = String(answers[currentQuestion.id]?.value ?? "0,0");
                       const parts = saved.split(",");
-                      return `Likelihood: ${parseInt(parts[0]) || 3} / Consequences: ${parseInt(parts[1]) || 3}`;
+                      return `Likelihood: ${parseInt(parts[0]) || 0} / Consequences: ${parseInt(parts[1]) || 0}`;
                     })()}
                   </span>
                 </div>

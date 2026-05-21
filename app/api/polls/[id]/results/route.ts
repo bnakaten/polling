@@ -57,32 +57,36 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: "Not authorized" }, { status: 403 });
     }
 
-    const results = poll.questions.map((question: any) => {
-      const needsOptions = question.answerType === "default" || !question.answerType;
-      
-       if (needsOptions) {
-         return {
-           questionId: question.id,
-           text: question.text,
-           category: question.category,
-           description: question.description,
-           answerType: question.answerType,
-           isOptional: question.isOptional,
-           imageUrl: question.imageUrl,
-           options: question.options.map((option: any) => ({
-             optionId: option.id,
-             text: option.text,
-             count: option.responses.length,
-           })),
-         };
-       }
+     const results = poll.questions.map((question: any) => {
+       const needsOptions = question.answerType === "default" || !question.answerType;
+       
+        if (needsOptions) {
+          const skippedResponses = question.responses.filter((r: any) => r.text === "skipped");
+          return {
+            questionId: question.id,
+            text: question.text,
+            category: question.category,
+            description: question.description,
+            answerType: question.answerType,
+            isOptional: question.isOptional,
+            imageUrl: question.imageUrl,
+            options: question.options.map((option: any) => ({
+              optionId: option.id,
+              text: option.text,
+              count: option.responses.length,
+            })),
+            skippedCount: skippedResponses.length,
+          };
+        }
       
       // For non-default questions (rating, textarea), count total responses
        const totalResponses = question.responses.length;
       
       if (question.answerType === "rating") {
-        // For rating questions, group responses by their numeric value
-        const responseValues = question.responses.map((r: any) => parseInt(r.text || "0"));
+        const skippedResponses = question.responses.filter((r: any) => r.text === "skipped");
+        const nonSkippedResponses = question.responses.filter((r: any) => r.text !== "skipped");
+        
+        const responseValues = nonSkippedResponses.map((r: any) => parseInt(r.text || "0"));
 
         const ratingCounts: Record<string, number> = {};
         responseValues.forEach((val: number) => {
@@ -107,12 +111,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           isOptional: question.isOptional,
           imageUrl: question.imageUrl,
           options: ratingOptions,
-          individualResponses: question.responses.map((r: any) => r.text),
+          skippedCount: skippedResponses.length,
+          individualResponses: nonSkippedResponses.map((r: any) => r.text),
         };
       }
 
       if (question.answerType === "multirangeslider") {
-        const responsePairs = question.responses.map((r: any) => r.text).filter(Boolean);
+        const skippedResponses = question.responses.filter((r: any) => r.text === "skipped");
+        const responsePairs = question.responses.filter((r: any) => r.text !== "skipped").map((r: any) => r.text).filter(Boolean);
 
         const pairCounts: Record<string, number> = {};
         responsePairs.forEach((pair: string) => {
@@ -158,11 +164,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           isOptional: question.isOptional,
           imageUrl: question.imageUrl,
           options: multirangeOptions.length > 0 ? multirangeOptions : [{ optionId: 0, text: "No responses yet", count: 0 }],
+          skippedCount: skippedResponses.length,
           individualResponses: responsePairs,
         };
       }
       
       // For textarea questions, return a single option showing total responses
+      const skippedResponses = question.responses.filter((r: any) => r.text === "skipped");
+      
       return {
         questionId: question.id,
         text: question.text,
@@ -178,7 +187,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
             count: totalResponses,
           },
         ],
-        individualResponses: question.responses.map((r: any) => r.text),
+        skippedCount: skippedResponses.length,
+        individualResponses: question.responses.filter((r: any) => r.text !== "skipped").map((r: any) => r.text),
       };
     });
 

@@ -45,30 +45,68 @@ if (tokenRecord.voteCount >= tokenRecord.maxVotes) {
      questionMap.set(q.id, q);
    });
 
-      await db.$transaction(async (tx) => {
-        for (const [key, value] of responses) {
-          const questionId = parseInt(key.replace("question_", ""));
-          const responseValue = value as string;
-          const question = questionMap.get(questionId);
-          const needsOptions = question?.answerType === "default" || !question?.answerType;
-          const isOptional = question?.isOptional || false;
+       await db.$transaction(async (tx) => {
+         for (const [key, value] of responses) {
+           const questionId = parseInt(key.replace("question_", ""));
+           const responseValue = value as string;
+           const question = questionMap.get(questionId);
+           const needsOptions = question?.answerType === "default" || !question?.answerType;
+           const isOptional = question?.isOptional || false;
 
-          console.log(`Processing question ${questionId}: needsOptions=${needsOptions}, value="${responseValue}", answerType=${question?.answerType}, isOptional=${isOptional}, questionFound=${!!question}`);
+           console.log(`Processing question ${questionId}: needsOptions=${needsOptions}, value="${responseValue}", answerType=${question?.answerType}, isOptional=${isOptional}, questionFound=${!!question}`);
 
- if (!question) {
-   console.log(`  Question ${questionId} not found, skipping`);
-   continue;
- }
+  if (!question) {
+    console.log(`  Question ${questionId} not found, skipping`);
+    continue;
+  }
 
-if (question?.answerType === "textarea" && isOptional && (responseValue === null || responseValue === "")) {
-            console.log(`  Skipping optional empty textarea question ${questionId}`);
-            continue;
-          }
+  if (question?.answerType === "textarea" && isOptional && (responseValue === null || responseValue === "" || responseValue === "skipped")) {
+    console.log(`  Creating skipped response for optional empty textarea question ${questionId}`);
+    await tx.response.create({
+      data: {
+        token: tokenRecord.id,
+        questionId,
+        text: "skipped",
+      },
+    });
+    continue;
+  }
 
-          if ((question?.answerType === "textarea" || question?.answerType === "multirangeslider") && isOptional && (responseValue === null || responseValue === "")) {
-            console.log(`  Skipping optional empty question ${questionId}`);
-            continue;
-          }
+   if (question?.answerType === "multirangeslider" && isOptional && (responseValue === "0,0" || responseValue === "skipped")) {
+    console.log(`  Creating skipped response for optional multirangeslider question ${questionId}`);
+    await tx.response.create({
+      data: {
+        token: tokenRecord.id,
+        questionId,
+        text: "skipped",
+      },
+    });
+    continue;
+  }
+
+  if (question?.answerType === "rating" && isOptional && responseValue === "skipped") {
+    console.log(`  Creating skipped response for optional rating question ${questionId}`);
+    await tx.response.create({
+      data: {
+        token: tokenRecord.id,
+        questionId,
+        text: "skipped",
+      },
+    });
+    continue;
+  }
+
+  if (needsOptions && isOptional && responseValue === "skipped") {
+    console.log(`  Creating skipped response for optional multiple choice question ${questionId}`);
+    await tx.response.create({
+      data: {
+        token: tokenRecord.id,
+        questionId,
+        text: "skipped",
+      },
+    });
+    continue;
+  }
 
           let optionId, text;
          if (needsOptions) {
