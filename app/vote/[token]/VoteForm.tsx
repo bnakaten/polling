@@ -325,12 +325,12 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                        <div className="space-y-6">
                          <div>
                            <label className="text-sm font-medium text-zinc-700 mb-2 block">Likelihood</label>
-                           <input
-                             type="range"
-                             name={`question_${question.id}_likelihood`}
-                              min="0"
-                              max="5"
-                              value={multirangeValues[question.id]?.likelihood ?? 0}
+                            <input
+                              type="range"
+                              name={`question_${question.id}_likelihood`}
+                               min="1"
+                               max="5"
+                               value={multirangeValues[question.id]?.likelihood ?? 1}
                               onChange={(e) => {
                                 const likelihood = parseInt(e.target.value);
                                 const consequences = multirangeValues[question.id]?.consequences ?? 0;
@@ -343,21 +343,22 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                              }}
                              className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                            />
-                            <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                              <span>0 Not likely</span>
-                              <span>2 Low likely</span>
-                              <span>4 Likely</span>
-                              <span>5 Near certainty</span>
-                            </div>
+                             <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                               <span>1 Not likely</span>
+                               <span>2 Low likely</span>
+                               <span>3 Likely</span>
+                               <span>4 Highly likely</span>
+                               <span>5 Near certainty</span>
+                             </div>
                          </div>
                          <div>
                            <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
-                           <input
-                             type="range"
-                             name={`question_${question.id}_consequences`}
-                              min="0"
-                              max="5"
-                              value={multirangeValues[question.id]?.consequences ?? 0}
+                            <input
+                              type="range"
+                              name={`question_${question.id}_consequences`}
+                               min="1"
+                               max="5"
+                               value={multirangeValues[question.id]?.consequences ?? 1}
                               onChange={(e) => {
                                 const likelihood = multirangeValues[question.id]?.likelihood ?? 0;
                                 const consequences = parseInt(e.target.value);
@@ -370,18 +371,19 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                              }}
                              className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                            />
-                            <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                              <span>0 Minimal</span>
-                              <span>2 Minor</span>
-                              <span>4 Major</span>
-                              <span>5 Critical</span>
-                            </div>
+                             <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                               <span>1 Minimal</span>
+                               <span>2 Minor</span>
+                               <span>3 Medium</span>
+                               <span>4 Major</span>
+                               <span>5 Critical</span>
+                             </div>
                          </div>
-                         <div className="text-center">
-                           <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
-                              <span className="likelihood-value">{multirangeValues[question.id]?.likelihood ?? 0}</span> / <span className="consequences-value">{multirangeValues[question.id]?.consequences ?? 0}</span>
-                           </span>
-                         </div>
+                          <div className="text-center">
+                            <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
+                               <span className="likelihood-value">{multirangeValues[question.id]?.likelihood ?? 1}</span> / <span className="consequences-value">{multirangeValues[question.id]?.consequences ?? 1}</span>
+                            </span>
+                          </div>
                        </div>
                       ) : (
                      <div className="space-y-2">

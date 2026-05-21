@@ -33,17 +33,22 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     poll.questions
       .filter((q: any) => q.answerType === "multirangeslider")
       .forEach((q: any) => {
-        defaults[q.id] = "0,0";
+        defaults[q.id] = "";
       });
     return defaults;
   });
   const [sliderChanged, setSliderChanged] = useState<Record<number, boolean>>({});
+  const [sliderMovedAtLeastOnce, setSliderMovedAtLeastOnce] = useState<Record<number, boolean>>({});
+  const [likelihoodMovedAtLeastOnce, setLikelihoodMovedAtLeastOnce] = useState<Record<number, boolean>>({});
+  const [consequencesMovedAtLeastOnce, setConsequencesMovedAtLeastOnce] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [answersLoaded, setAnswersLoaded] = useState(false);
   const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, any>>({});
   const likelihoodRef = useRef<HTMLInputElement>(null);
   const consequencesRef = useRef<HTMLInputElement>(null);
+  const [likelihoodInitial, setLikelihoodInitial] = useState<number>(1);
+  const [consequencesInitial, setConsequencesInitial] = useState<number>(1);
 
   const questions = poll.questions.filter((q: any) => {
     if (q.answerType === "default" || !q.answerType) {
@@ -94,7 +99,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
           if (question.answerType === "rating") {
             initialAnswers[question.id] = { value: 5, answered: false };
           } else if (question.answerType === "multirangeslider") {
-            initialAnswers[question.id] = { value: "0,0", answered: false };
+            initialAnswers[question.id] = { value: "", answered: false };
           } else if (question.answerType === "default" && question.isOptional) {
             initialAnswers[question.id] = { value: null, answered: false };
           }
@@ -122,16 +127,26 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
   }, [token, currentQuestionIndex]);
 
     useLayoutEffect(() => {
-     if (currentQuestion.answerType === "multirangeslider" && likelihoodRef.current && consequencesRef.current) {
-       const saved = String(answers[currentQuestion.id]?.value ?? "0,0");
-       const parts = saved.split(",");
-       const likelihoodVal = parseInt(parts[0]) || 0;
-       const consequencesVal = parseInt(parts[1]) || 0;
-      
-      likelihoodRef.current.value = String(likelihoodVal);
-      consequencesRef.current.value = String(consequencesVal);
-      
-      console.log("useLayoutEffect: Set slider DOM values for", currentQuestion.id, ":", likelihoodVal, ",", consequencesVal);
+      if (currentQuestion.answerType === "multirangeslider" && likelihoodRef.current && consequencesRef.current) {
+        const saved = String(answers[currentQuestion.id]?.value ?? "");
+        let likelihoodVal = 1;
+        let consequencesVal = 1;
+        if (saved && saved !== "") {
+          const parts = saved.split(",");
+          likelihoodVal = parseInt(parts[0]) || 1;
+          consequencesVal = parseInt(parts[1]) || 1;
+        }
+        
+        likelihoodRef.current.value = String(likelihoodVal);
+        consequencesRef.current.value = String(consequencesVal);
+        
+        setLikelihoodInitial(likelihoodVal);
+        setConsequencesInitial(consequencesVal);
+        setSliderMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
+        setLikelihoodMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
+        setConsequencesMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
+        
+        console.log("useLayoutEffect: Set slider DOM values for", currentQuestion.id, ":", likelihoodVal, ",", consequencesVal);
     } else if (currentQuestion.answerType === "rating" && answersLoaded) {
       const savedValue = answers[currentQuestion.id]?.value ?? 5;
       const slider = document.querySelector(`input[name="question_${currentQuestion.id}"]`) as HTMLInputElement;
@@ -174,17 +189,35 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
       if (slider) {
         saveAnswer(currentQuestion.id, parseInt(slider.value));
       }
-    } else if (currentQuestion.answerType === "multirangeslider") {
-      if (!currentQuestion.isOptional && !sliderChanged[currentQuestion.id]) {
+     } else if (currentQuestion.answerType === "multirangeslider") {
+      if (!currentQuestion.isOptional && !sliderMovedAtLeastOnce[currentQuestion.id]) {
         setError("Please adjust the sliders to submit your vote");
         return;
       }
       const likelihood = document.querySelector(`input[name="question_${currentQuestion.id}_likelihood"]`) as HTMLInputElement;
       const consequences = document.querySelector(`input[name="question_${currentQuestion.id}_consequences"]`) as HTMLInputElement;
       if (likelihood && consequences) {
-        const value = `${likelihood.value || "0"},${consequences.value || "0"}`;
-        console.log("Saving multirangeslider answer for", currentQuestion.id, ":", value);
-        saveAnswer(currentQuestion.id, value);
+        const likelihoodVal = parseInt(likelihood.value) || 1;
+        const consequencesVal = parseInt(consequences.value) || 1;
+        let likelihoodValue = likelihoodVal;
+        let consequencesValue = consequencesVal;
+        
+        if (sliderMovedAtLeastOnce[currentQuestion.id]) {
+          if (!likelihood.value && consequences.value) {
+            likelihoodValue = 1;
+          } else if (likelihood.value && !consequences.value) {
+            consequencesValue = 1;
+          }
+        }
+        
+        const value = `${likelihoodValue},${consequencesValue}`;
+        if (!sliderMovedAtLeastOnce[currentQuestion.id]) {
+          console.log("Saving multirangeslider answer for", currentQuestion.id, ": skipped (not touched)");
+          saveAnswer(currentQuestion.id, "");
+        } else {
+          console.log("Saving multirangeslider answer for", currentQuestion.id, ":", value);
+          saveAnswer(currentQuestion.id, value);
+        }
       }
     } else {
       const checked = document.querySelector(`input[name="question_${currentQuestion.id}"]:checked`) as HTMLInputElement;
@@ -224,18 +257,18 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
       .filter((q: any) => q.answerType === "multirangeslider")
       .forEach((q: any) => {
         if (!submitAnswers[q.id]) {
-          submitAnswers[q.id] = { value: "0,0", answered: true };
-        }
+           submitAnswers[q.id] = { value: "", answered: false };
+         }
       });
 
     for (const [questionId, answer] of Object.entries(submitAnswers)) {
       const question = poll.questions.find((q: any) => q.id === parseInt(questionId));
       if (!question) continue;
       
-      if (question.isOptional && (answer.value === null || answer.value === "0,0" || answer.value === "")) {
+      if (question.isOptional && answer.value === "") {
         formData.append(`question_${questionId}`, "skipped");
         console.log(`Setting question_${questionId} to "skipped" (optional, not answered)`);
-      } else if (answer.answered && answer.value !== null && answer.value !== "0,0" && answer.value !== "") {
+      } else if (answer.answered && answer.value !== null && answer.value !== "") {
         if (question.answerType === "rating" || typeof answer.value === "number") {
           formData.append(`question_${questionId}`, answer.value.toString());
         } else {
@@ -372,27 +405,32 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                      key={`likelihood-${currentQuestion.id}`}
                      type="range"
                      name={`question_${currentQuestion.id}_likelihood`}
-                      min="0"
+                      min="1"
                       max="5"
-                       defaultValue={(() => {
-                         const val = answers[currentQuestion.id]?.value;
-                         return val ? parseInt(String(val).split(",")[0]) : 0;
-                       })()}
-                       onChange={(e) => {
-                         setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
-                         const saved = String(answers[currentQuestion.id]?.value ?? "0,0");
-                         const parts = saved.split(",");
-                         parts[0] = e.target.value;
-                         saveAnswer(currentQuestion.id, parts.join(","));
-                       }}
+                        defaultValue={(() => {
+                          const val = answers[currentQuestion.id]?.value;
+                          return val ? parseInt(String(val).split(",")[0]) : 1;
+                        })()}
+                        onChange={(e) => {
+                          setSliderMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
+                          setLikelihoodMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
+                          const saved = String(answers[currentQuestion.id]?.value ?? "");
+                          let parts = saved.split(",");
+                          if (saved === "") {
+                            parts = ["1", "1"];
+                          }
+                          parts[0] = e.target.value;
+                          saveAnswer(currentQuestion.id, parts.join(","));
+                        }}
                     className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                   />
-                  <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                      <span>0 Not likely</span>
-                      <span>2 Low likely</span>
-                      <span>4 Likely</span>
-                      <span>5 Near certainty</span>
-                  </div>
+                   <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                       <span>1 Not likely</span>
+                       <span>2 Low likely</span>
+                       <span>3 Likely</span>
+                       <span>4 Highly likely</span>
+                       <span>5 Near certainty</span>
+                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
@@ -401,36 +439,43 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                      key={`consequences-${currentQuestion.id}`}
                      type="range"
                      name={`question_${currentQuestion.id}_consequences`}
-                      min="0"
+                      min="1"
                       max="5"
-                       defaultValue={(() => {
-                         const val = answers[currentQuestion.id]?.value;
-                         return val ? parseInt(String(val).split(",")[1]) : 0;
-                       })()}
-                       onChange={(e) => {
-                         setSliderChanged(prev => ({ ...prev, [currentQuestion.id]: true }));
-                         const saved = String(answers[currentQuestion.id]?.value ?? "0,0");
-                         const parts = saved.split(",");
-                         parts[1] = e.target.value;
-                         saveAnswer(currentQuestion.id, parts.join(","));
-                       }}
+                        defaultValue={(() => {
+                          const val = answers[currentQuestion.id]?.value;
+                          return val ? parseInt(String(val).split(",")[1]) : 1;
+                        })()}
+                        onChange={(e) => {
+                          setSliderMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
+                          setConsequencesMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
+                          const saved = String(answers[currentQuestion.id]?.value ?? "");
+                          let parts = saved.split(",");
+                          if (saved === "") {
+                            parts = ["1", "1"];
+                          }
+                          parts[1] = e.target.value;
+                          saveAnswer(currentQuestion.id, parts.join(","));
+                        }}
                     className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                   />
-                  <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                      <span>0 Minimal</span>
-                      <span>2 Minor</span>
-                      <span>4 Major</span>
-                      <span>5 Critical</span>
-                  </div>
+                   <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                       <span>1 Minimal</span>
+                       <span>2 Minor</span>
+                       <span>3 Medium</span>
+                       <span>4 Major</span>
+                       <span>5 Critical</span>
+                   </div>
                 </div>
-                <div className="text-center">
-                  <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
-                    {(() => {
-                      const saved = String(answers[currentQuestion.id]?.value ?? "0,0");
-                      const parts = saved.split(",");
-                      return `Likelihood: ${parseInt(parts[0]) || 0} / Consequences: ${parseInt(parts[1]) || 0}`;
-                    })()}
-                  </span>
+                 <div className="text-center">
+                   <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
+                     {(() => {
+                       const saved = String(answers[currentQuestion.id]?.value ?? "");
+                       const parts = saved.split(",");
+                       const likelihoodVal = parts[0] ? parseInt(parts[0]) : 1;
+                       const consequencesVal = parts[1] ? parseInt(parts[1]) : 1;
+                        return `Likelihood: ${likelihoodVal} / Consequences: ${consequencesVal}`;
+                     })()}
+                   </span>
                 </div>
               </div>
             ) : (

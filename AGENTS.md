@@ -91,9 +91,10 @@ Response {
 1. **Authentication**: JWT + HTTP-only cookies for admin login/registration
 2. **Poll Creation**: Create polls with title, description, and multiple questions
 3. **Question Types**:
-   - `default`: Radio buttons (single choice)
-   - `rating`: 0-10 slider
-   - `textarea`: Open text responses
+    - `default`: Radio buttons (single choice)
+    - `rating`: 0-10 slider
+    - `multirange-slider`: Likelihood (1~not likely to 5~near certainty) & Consequences (1~minimal to 5~critical)
+    - `textarea`: Open text responses
 4. **Voting**: Single-use tokens (one vote per link)
 5. **Bulk Token Generation**: Generate 1-100 voting links at once
 6. **Results**: Real-time vote counts with progress bars
