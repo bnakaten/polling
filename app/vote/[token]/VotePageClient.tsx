@@ -242,12 +242,11 @@ export default function VotePageClient({ poll, token }: VotePageClientProps) {
                   name={`question_${currentQuestion.id}_likelihood`}
                    min="0"
                    max="5"
-                   defaultValue={((): string => {
-                     const val = String(answers[currentQuestion.id]?.value ?? "0,0");
-                     const parts = val.split(",");
-                     const first = parts[0] ? parts[0] : "0";
-                     return first === "3" ? "0" : first;
-                   })()}
+defaultValue={((): string => {
+                      const val = String(answers[currentQuestion.id]?.value ?? "0,0");
+                      const parts = val.split(",");
+                      return parts[0] ? parts[0] : "0";
+                    })()}
                    onChange={(e) => {
                      const parts = String(answers[currentQuestion.id]?.value || "0,0").split(",");
                      parts[0] = e.target.value;
@@ -271,12 +270,11 @@ export default function VotePageClient({ poll, token }: VotePageClientProps) {
                   name={`question_${currentQuestion.id}_consequences`}
                    min="0"
                    max="5"
-                   defaultValue={((): string => {
-                     const val = String(answers[currentQuestion.id]?.value ?? "0,0");
-                     const parts = val.split(",");
-                     const second = parts[1] ? parts[1] : "0";
-                     return second === "3" ? "0" : second;
-                   })()}
+defaultValue={((): string => {
+                      const val = String(answers[currentQuestion.id]?.value ?? "0,0");
+                      const parts = val.split(",");
+                      return parts[1] ? parts[1] : "0";
+                    })()}
                    onChange={(e) => {
                      const parts = String(answers[currentQuestion.id]?.value || "0,0").split(",");
                      parts[1] = e.target.value;

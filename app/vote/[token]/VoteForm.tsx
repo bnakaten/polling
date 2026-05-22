@@ -31,43 +31,41 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
   const [textareaInteracted, setTextareaInteracted] = useState<Record<number, boolean>>({});
   const [ratingInteracted, setRatingInteracted] = useState<Record<number, boolean>>({});
   const [multirangeInteracted, setMultirangeInteracted] = useState<Record<number, boolean>>({});
-
-   useEffect(() => {
-      const storedValues = localStorage.getItem(`poll_votes_${token}`);
-      if (storedValues) {
-        try {
-          const parsed = JSON.parse(storedValues);
-           if (parsed.multirangeValues) {
-             const parsedValues = parsed.multirangeValues;
-             const restoredValues: Record<number, { likelihood: number; consequences: number }> = {};
-             Object.keys(parsedValues).forEach((key: string) => {
-               const questionId = parseInt(key);
-               const value = parsedValues[questionId];
-               restoredValues[questionId] = {
-                 likelihood: value?.likelihood ?? 0,
-                 consequences: value?.consequences ?? 0
-               };
-             });
-             setMultirangeValues(restoredValues);
-            console.log("Loaded from localStorage:", parsedValues);
-           }
-         } catch (e) {
-           console.error("Failed to parse stored vote values:", e);
-         }
-       } else {
-         const initialMultirangeValues: Record<number, { likelihood: number; consequences: number }> = {};
-         poll.questions.filter((q: any) => q.answerType === 'multirangeslider').forEach((q: any) => {
-           initialMultirangeValues[q.id] = { likelihood: 0, consequences: 0 };
-         });
-         setMultirangeValues(initialMultirangeValues);
-       }
-      }, [token, poll]);
+  
+  const restoreMultirangeValues = () => {
+    const storedValues = localStorage.getItem(`poll_votes_${token}`);
+    if (storedValues) {
+      try {
+        const parsed = JSON.parse(storedValues);
+        if (parsed.multirangeValues) {
+          const parsedValues = parsed.multirangeValues;
+          const restoredValues: Record<number, { likelihood: number; consequences: number }> = {};
+          Object.keys(parsedValues).forEach((key: string) => {
+            const questionId = parseInt(key);
+            const value = parsedValues[questionId];
+            restoredValues[questionId] = {
+              likelihood: value?.likelihood ?? 0,
+              consequences: value?.consequences ?? 0
+            };
+          });
+          console.log("Loaded from localStorage:", parsedValues);
+          return restoredValues;
+        }
+      } catch (e) {
+        console.error("Failed to parse stored vote values:", e);
+      }
+    }
+    
+    const initialMultirangeValues: Record<number, { likelihood: number; consequences: number }> = {};
+    poll.questions.filter((q: any) => q.answerType === 'multirangeslider').forEach((q: any) => {
+      initialMultirangeValues[q.id] = { likelihood: 0, consequences: 0 };
+    });
+    return initialMultirangeValues;
+  };
 
   useEffect(() => {
-    if (submittedAnswers && Object.keys(submittedAnswers).length > 0) {
-      localStorage.removeItem(`poll_votes_${token}`);
-    }
-  }, [submittedAnswers, token]);
+    setMultirangeValues(restoreMultirangeValues());
+  }, [token]);
 
   const handleSliderChange = (questionId: number, value: string) => {
     setSliderValues(prev => ({ ...prev, [questionId]: parseInt(value) }));
@@ -207,8 +205,6 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
     localStorage.setItem(`poll_votes_${token}`, multirangeValuesString);
 
     formData.append("token", token);
-
-    localStorage.setItem(`poll_data_${token}`, JSON.stringify(poll));
 
     try {
       const response = await fetch(`/api/vote/${token}/submit`, {
