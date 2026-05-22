@@ -48,14 +48,14 @@ export default function VoteLanding({ poll, token }: VoteLandingProps) {
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-8">
       <div className="max-w-2xl w-full bg-white rounded-lg shadow-sm p-8">
         <div className="mb-8">
-          {poll.imageUrl && (
-            <div className="mb-4 rounded-lg overflow-hidden">
-              <img src={poll.imageUrl} alt={poll.title} className="w-full h-auto rounded-lg" />
-            </div>
-          )}
           <h1 className="text-3xl md:text-4xl font-bold text-zinc-900 mb-3">{poll.title}</h1>
           {poll.description && (
             <FormattedHtml html={poll.description} className="text-lg text-zinc-600" />
+          )}
+          {poll.imageUrl && (
+            <div className="mt-4 rounded-lg overflow-hidden">
+              <img src={poll.imageUrl} alt={poll.title} className="w-full h-auto rounded-lg" />
+            </div>
           )}
         </div>
 
