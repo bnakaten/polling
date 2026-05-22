@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { hash, compare } from "bcrypt";
 import { sign, verify } from "jsonwebtoken";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-this";
 const SALT_ROUNDS = 10;
@@ -91,7 +92,7 @@ export async function getCurrentUser() {
 export async function requireAuth() {
   const user = await getCurrentUser();
   if (!user) {
-    throw new Error("Unauthorized");
+    redirect("/login");
   }
   
   const fullUser = await db.user.findUnique({
@@ -100,7 +101,7 @@ export async function requireAuth() {
   });
   
   if (!fullUser) {
-    throw new Error("User not found");
+    redirect("/login");
   }
   
   return fullUser;
