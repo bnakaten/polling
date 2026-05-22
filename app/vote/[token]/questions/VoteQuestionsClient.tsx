@@ -28,6 +28,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     const defaults: Answers = {};
     return defaults;
   });
+  const prevQuestionIndexRef = useRef(0);
   const [initialValues, setInitialValues] = useState<InitialValues>(() => {
     const defaults: InitialValues = {};
     poll.questions
@@ -43,8 +44,9 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
   const [consequencesMovedAtLeastOnce, setConsequencesMovedAtLeastOnce] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [answersLoaded, setAnswersLoaded] = useState(false);
-  const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, any>>({});
+   const [answersLoaded, setAnswersLoaded] = useState(false);
+   const [isFirstLoad, setIsFirstLoad] = useState(true);
+   const [submittedAnswers, setSubmittedAnswers] = useState<Record<number, any>>({});
   const likelihoodRef = useRef<HTMLInputElement>(null);
   const consequencesRef = useRef<HTMLInputElement>(null);
   const [likelihoodInitial, setLikelihoodInitial] = useState<number>(1);
@@ -82,56 +84,42 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     );
   }
 
-  useEffect(() => {
-    const savedAnswers = sessionStorage.getItem(`poll_answers_${token}`);
-    if (savedAnswers) {
-      try {
-        const parsed = JSON.parse(savedAnswers);
-        setAnswers(prev => ({ ...prev, ...parsed }));
-        setAnswersLoaded(true);
-      } catch (e) {
-        console.error("Failed to parse saved answers");
-        setAnswersLoaded(true);
-      }
-      } else {
-        const initialAnswers: Record<number, { value: string | number | null; answered: boolean }> = {};
-        questions.forEach((question: any) => {
-          if (question.answerType === "rating") {
-            initialAnswers[question.id] = { value: 5, answered: false };
-          } else if (question.answerType === "multirangeslider") {
-            initialAnswers[question.id] = { value: "", answered: false };
-          } else if (question.answerType === "default" && question.isOptional) {
-            initialAnswers[question.id] = { value: null, answered: false };
-          }
-        });
-        setAnswers(initialAnswers);
-      }
-  }, [token]);
+   useEffect(() => {
+     const savedAnswers = sessionStorage.getItem(`poll_answers_${token}`);
+     if (savedAnswers) {
+       try {
+         const parsed = JSON.parse(savedAnswers);
+         const restoredAnswers: Record<number, { value: string | number | null; answered: boolean }> = {};
+         Object.keys(parsed).forEach((key: string) => {
+           const questionId = parseInt(key);
+           const saved = parsed[questionId];
+           restoredAnswers[questionId] = {
+             value: saved?.value ?? (questionId === 0 ? "" : 0),
+             answered: saved?.answered ?? false
+           };
+         });
+         setAnswers(prev => ({ ...prev, ...restoredAnswers }));
+         setAnswersLoaded(true);
+       } catch (e) {
+         console.error("Failed to parse saved answers", e);
+         setAnswersLoaded(true);
+       }
+     }
+     setIsFirstLoad(false);
+   }, [token]);
 
-  useEffect(() => {
-    console.log("Effect: token or currentQuestionIndex changed", { token, currentQuestionIndex, questionId: currentQuestion.id });
-    const savedAnswers = sessionStorage.getItem(`poll_answers_${token}`);
-    if (savedAnswers) {
-      try {
-        const parsed = JSON.parse(savedAnswers);
-        console.log("Parsed saved answers:", parsed);
-        const currentSaved = parsed[currentQuestion.id];
-        console.log("Current question saved answer:", currentSaved);
-        if (currentSaved && currentQuestion.answerType === "multirangeslider") {
-          setAnswers(prev => ({ ...prev, [currentQuestion.id]: currentSaved }));
-        }
-      } catch (e) {
-        console.error("Failed to parse saved answers for current question", e);
-      }
-    }
-  }, [token, currentQuestionIndex]);
+   useEffect(() => {
+     prevQuestionIndexRef.current = currentQuestionIndex;
+   }, [currentQuestionIndex]);
 
     useLayoutEffect(() => {
       if (currentQuestion.answerType === "multirangeslider" && likelihoodRef.current && consequencesRef.current) {
-        const saved = String(answers[currentQuestion.id]?.value ?? "");
+        const savedValue = answers[currentQuestion.id]?.value;
         let likelihoodVal = 0;
         let consequencesVal = 0;
-        if (saved && saved !== "") {
+        
+        if (savedValue !== undefined && savedValue !== "") {
+          const saved = String(savedValue);
           const parts = saved.split(",");
           likelihoodVal = parseInt(parts[0]) ?? 0;
           consequencesVal = parseInt(parts[1]) ?? 0;
@@ -146,7 +134,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
         setLikelihoodMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
         setConsequencesMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
         
-        console.log("useLayoutEffect: Set slider DOM values for", currentQuestion.id, ":", likelihoodVal, ",", consequencesVal);
+        console.log("useLayoutEffect: Set slider DOM values for", currentQuestion.id, ":", likelihoodVal, ",", consequencesVal, "savedValue:", savedValue);
     } else if (currentQuestion.answerType === "rating" && answersLoaded) {
       const savedValue = answers[currentQuestion.id]?.value ?? 5;
       const slider = document.querySelector(`input[name="question_${currentQuestion.id}"]`) as HTMLInputElement;
@@ -164,7 +152,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
         }
       }
     }
-  }, [currentQuestionIndex, currentQuestion.id, answersLoaded]);
+  }, [token, currentQuestionIndex, currentQuestion.id, answersLoaded]);
 
    useEffect(() => {
      if (currentQuestion.answerType === "multirangeslider") {
@@ -219,14 +207,18 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
            }
          }
          
-         const value = `${likelihoodValue},${consequencesValue}`;
-         if (!sliderMovedAtLeastOnce[currentQuestion.id]) {
-           console.log("Saving multirangeslider answer for", currentQuestion.id, ": skipped (not touched)");
-           saveAnswer(currentQuestion.id, "0,0");
-         } else {
-           console.log("Saving multirangeslider answer for", currentQuestion.id, ":", value);
-           saveAnswer(currentQuestion.id, value);
-         }
+          const value = `${likelihoodValue},${consequencesValue}`;
+          if (!sliderMovedAtLeastOnce[currentQuestion.id]) {
+            console.log("Saving multirangeslider answer for", currentQuestion.id, ": skipped (not touched)");
+            setAnswers(prev => {
+              const newAnswers = { ...prev, [currentQuestion.id]: { value: "0,0", answered: false } };
+              sessionStorage.setItem(`poll_answers_${token}`, JSON.stringify(newAnswers));
+              return newAnswers;
+            });
+          } else {
+            console.log("Saving multirangeslider answer for", currentQuestion.id, ":", value);
+            saveAnswer(currentQuestion.id, value);
+          }
        }
     } else {
       const checked = document.querySelector(`input[name="question_${currentQuestion.id}"]:checked`) as HTMLInputElement;

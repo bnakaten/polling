@@ -31,38 +31,37 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
   const [textareaInteracted, setTextareaInteracted] = useState<Record<number, boolean>>({});
   const [ratingInteracted, setRatingInteracted] = useState<Record<number, boolean>>({});
   const [multirangeInteracted, setMultirangeInteracted] = useState<Record<number, boolean>>({});
-  const [isMounted, setIsMounted] = useState(false);
 
    useEffect(() => {
-     setIsMounted(true);
-   }, []);
-
-   useEffect(() => {
-     const storedValues = localStorage.getItem(`poll_votes_${token}`);
-     if (storedValues) {
-       try {
-         const parsed = JSON.parse(storedValues);
-          if (parsed.multirangeValues) {
-            const parsedValues = parsed.multirangeValues;
-            const restoredValues: Record<number, { likelihood: number; consequences: number }> = {};
-            Object.keys(parsedValues).forEach((key: string) => {
-              const questionId = parseInt(key);
-              const value = parsedValues[questionId];
-              restoredValues[questionId] = {
-                likelihood: value?.likelihood ?? 0,
-                consequences: value?.consequences ?? 0
-              };
-            });
-            setMultirangeValues(restoredValues);
-           console.log("Loaded from localStorage:", parsedValues);
+      const storedValues = localStorage.getItem(`poll_votes_${token}`);
+      if (storedValues) {
+        try {
+          const parsed = JSON.parse(storedValues);
+           if (parsed.multirangeValues) {
+             const parsedValues = parsed.multirangeValues;
+             const restoredValues: Record<number, { likelihood: number; consequences: number }> = {};
+             Object.keys(parsedValues).forEach((key: string) => {
+               const questionId = parseInt(key);
+               const value = parsedValues[questionId];
+               restoredValues[questionId] = {
+                 likelihood: value?.likelihood ?? 0,
+                 consequences: value?.consequences ?? 0
+               };
+             });
+             setMultirangeValues(restoredValues);
+            console.log("Loaded from localStorage:", parsedValues);
+           }
+         } catch (e) {
+           console.error("Failed to parse stored vote values:", e);
          }
-       } catch (e) {
-         console.error("Failed to parse stored vote values:", e);
+       } else {
+         const initialMultirangeValues: Record<number, { likelihood: number; consequences: number }> = {};
+         poll.questions.filter((q: any) => q.answerType === 'multirangeslider').forEach((q: any) => {
+           initialMultirangeValues[q.id] = { likelihood: 0, consequences: 0 };
+         });
+         setMultirangeValues(initialMultirangeValues);
        }
-     } else {
-       setMultirangeValues({});
-     }
-   }, [token]);
+      }, [token, poll]);
 
   useEffect(() => {
     if (submittedAnswers && Object.keys(submittedAnswers).length > 0) {
@@ -262,7 +261,7 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                 }
                 
                 const multirangesliderDefaults = question.answerType === "multirangeslider" ? (
-                  <input type="hidden" name={`question_${question.id}`} defaultValue={`${multirangeValues[question.id]?.likelihood ?? 0},${multirangeValues[question.id]?.consequences ?? 0}`} />
+                  <input type="hidden" name={`question_${question.id}`} value={`${multirangeValues[question.id]?.likelihood ?? 0},${multirangeValues[question.id]?.consequences ?? 0}`} />
                 ) : null;
                 
                 return (
@@ -332,13 +331,12 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                        <div className="space-y-6">
                          <div>
                             <label className="text-sm font-medium text-zinc-700 mb-2 block">Likelihood</label>
-                                <input
-                                  key={`likelihood-${question.id}-${isMounted}`}
-                                  type="range"
-                                  name={`question_${question.id}_likelihood`}
-                                   min="0"
-                                   max="5"
-                                   value={multirangeValues[question.id]?.likelihood ?? 0}
+                                 <input
+                                   type="range"
+                                   name={`question_${question.id}_likelihood`}
+                                    min="0"
+                                    max="5"
+                                    value={multirangeValues[question.id]?.likelihood ?? 0}
                                onChange={(e) => {
                                 const likelihood = parseInt(e.target.value);
                                 const consequences = multirangeValues[question.id]?.consequences ?? 0;
@@ -362,13 +360,12 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
                          </div>
                          <div>
                             <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
-                                <input
-                                  key={`consequences-${question.id}-${isMounted}`}
-                                  type="range"
-                                  name={`question_${question.id}_consequences`}
-                                   min="0"
-                                   max="5"
-                                   value={multirangeValues[question.id]?.consequences ?? 0}
+                                 <input
+                                   type="range"
+                                   name={`question_${question.id}_consequences`}
+                                    min="0"
+                                    max="5"
+                                    value={multirangeValues[question.id]?.consequences ?? 0}
                                onChange={(e) => {
                                 const likelihood = multirangeValues[question.id]?.likelihood ?? 0;
                                 const consequences = parseInt(e.target.value);
