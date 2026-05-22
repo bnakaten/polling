@@ -71,6 +71,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
               include: {
                 options: true,
               },
+              orderBy: { id: 'asc' },
             },
           },
         },
@@ -87,7 +88,13 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
 
     return NextResponse.json({ 
       success: true, 
-      poll: tokenRecord.poll,
+      poll: {
+        ...tokenRecord.poll,
+        questions: tokenRecord.poll.questions.map((q: any) => ({
+          ...q,
+          imageUrl: q.imageUrl || null,
+        })),
+      },
       token: tokenRecord.token 
     });
   } catch (error) {
