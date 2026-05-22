@@ -38,29 +38,26 @@ export default function VotePageClient({ poll, token }: VotePageClientProps) {
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
-  useEffect(() => {
-    const savedAnswers = sessionStorage.getItem(`poll_answers_${token}`);
-    if (savedAnswers) {
-      try {
-        const parsed = JSON.parse(savedAnswers);
-        setAnswers(prev => ({ ...prev, ...parsed }));
-      } catch (e) {
-        console.error("Failed to parse saved answers");
-      }
-    }
-  }, [token]);
-
-  useEffect(() => {
-    const savedAnswers = sessionStorage.getItem(`poll_answers_${token}`);
-    if (savedAnswers) {
-      try {
-        const parsed = JSON.parse(savedAnswers);
-        setAnswers(prev => ({ ...prev, ...parsed }));
-      } catch (e) {
-        console.error("Failed to parse saved answers");
-      }
-    }
-  }, [token, currentQuestionIndex]);
+useEffect(() => {
+     const savedAnswers = sessionStorage.getItem(`poll_answers_${token}`);
+     if (savedAnswers) {
+       try {
+         const parsed = JSON.parse(savedAnswers);
+         const filteredAnswers: Answers = {};
+         Object.keys(parsed).forEach((key: string) => {
+           const saved = parsed[key];
+           if (saved?.answered) {
+             filteredAnswers[parseInt(key)] = saved;
+           }
+         });
+         if (Object.keys(filteredAnswers).length > 0) {
+           setAnswers(prev => ({ ...prev, ...filteredAnswers }));
+         }
+       } catch (e) {
+         console.error("Failed to parse saved answers");
+       }
+     }
+   }, [token]);
 
   const saveAnswer = (questionId: number, value: string | number | null) => {
     setAnswers(prev => {
@@ -237,16 +234,13 @@ export default function VotePageClient({ poll, token }: VotePageClientProps) {
             <div className="space-y-6">
               <div>
                 <label className="text-sm font-medium text-zinc-700 mb-2 block">Likelihood</label>
-                <input
+<input
+                  key={`likelihood-${token}-${currentQuestion.id}`}
                   type="range"
                   name={`question_${currentQuestion.id}_likelihood`}
                    min="0"
                    max="5"
-defaultValue={((): string => {
-                      const val = String(answers[currentQuestion.id]?.value ?? "0,0");
-                      const parts = val.split(",");
-                      return parts[0] ? parts[0] : "0";
-                    })()}
+                  value={answers[currentQuestion.id]?.value ? String(answers[currentQuestion.id].value).split(",")[0] : "0"}
                    onChange={(e) => {
                      const parts = String(answers[currentQuestion.id]?.value || "0,0").split(",");
                      parts[0] = e.target.value;
@@ -265,16 +259,13 @@ defaultValue={((): string => {
               </div>
               <div>
                 <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
-                <input
+<input
+                  key={`consequences-${currentQuestion.id}`}
                   type="range"
                   name={`question_${currentQuestion.id}_consequences`}
                    min="0"
                    max="5"
-defaultValue={((): string => {
-                      const val = String(answers[currentQuestion.id]?.value ?? "0,0");
-                      const parts = val.split(",");
-                      return parts[1] ? parts[1] : "0";
-                    })()}
+                  value={answers[currentQuestion.id]?.value ? String(answers[currentQuestion.id].value).split(",")[1] : "0"}
                    onChange={(e) => {
                      const parts = String(answers[currentQuestion.id]?.value || "0,0").split(",");
                      parts[1] = e.target.value;

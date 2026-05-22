@@ -90,20 +90,29 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
        try {
          const parsed = JSON.parse(savedAnswers);
          const restoredAnswers: Record<number, { value: string | number | null; answered: boolean }> = {};
+         const restoredSliderMoved: Record<number, boolean> = {};
          Object.keys(parsed).forEach((key: string) => {
            const questionId = parseInt(key);
            const saved = parsed[questionId];
-           restoredAnswers[questionId] = {
-             value: saved?.value ?? (questionId === 0 ? "" : 0),
-             answered: saved?.answered ?? false
-           };
+           if (saved?.answered) {
+             restoredAnswers[questionId] = {
+               value: saved?.value ?? (questionId === 0 ? "" : 0),
+               answered: true
+             };
+             restoredSliderMoved[questionId] = true;
+           }
          });
-         setAnswers(prev => ({ ...prev, ...restoredAnswers }));
+         if (Object.keys(restoredAnswers).length > 0) {
+           setAnswers(prev => ({ ...prev, ...restoredAnswers }));
+           setSliderMovedAtLeastOnce(prev => ({ ...prev, ...restoredSliderMoved }));
+         }
          setAnswersLoaded(true);
        } catch (e) {
          console.error("Failed to parse saved answers", e);
          setAnswersLoaded(true);
        }
+     } else {
+       setAnswersLoaded(true);
      }
      setIsFirstLoad(false);
    }, [token]);
@@ -130,9 +139,11 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
         
         setLikelihoodInitial(likelihoodVal);
         setConsequencesInitial(consequencesVal);
-        setSliderMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
-        setLikelihoodMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
-        setConsequencesMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
+        if (!sliderMovedAtLeastOnce[currentQuestion.id]) {
+          setSliderMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
+          setLikelihoodMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
+          setConsequencesMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: false }));
+        }
         
         console.log("useLayoutEffect: Set slider DOM values for", currentQuestion.id, ":", likelihoodVal, ",", consequencesVal, "savedValue:", savedValue);
     } else if (currentQuestion.answerType === "rating" && answersLoaded) {
@@ -398,7 +409,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
               </div>
             </div>
             ) : currentQuestion.answerType === "multirangeslider" ? (
-              <div key={`multirange-${currentQuestion.id}`} className="space-y-6">
+              <div key={`multirange-${token}-${currentQuestion.id}`} className="space-y-6">
                 <div>
                   <label className="text-sm font-medium text-zinc-700 mb-2 block">Likelihood</label>
                     <input
@@ -407,11 +418,8 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                       name={`question_${currentQuestion.id}_likelihood`}
                        min="0"
                        max="5"
-                           defaultValue={((): number => {
-                             const val = answers[currentQuestion.id]?.value;
-                             const num = val ? parseInt(String(val).split(",")[0]) ?? 0 : 0;
-                             return num;
-                           })()}
+                       key={`likelihood-${token}-${currentQuestion.id}`}
+                       value={answers[currentQuestion.id]?.value ? parseInt(String(answers[currentQuestion.id].value).split(",")[0]) : 0}
                         onChange={(e) => {
                           setSliderMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
                           setLikelihoodMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
@@ -442,11 +450,8 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                       name={`question_${currentQuestion.id}_consequences`}
                        min="0"
                        max="5"
-                           defaultValue={((): number => {
-                             const val = answers[currentQuestion.id]?.value;
-                             const num = val ? parseInt(String(val).split(",")[1]) ?? 0 : 0;
-                             return num;
-                           })()}
+                       key={`consequences-${token}-${currentQuestion.id}`}
+                       value={answers[currentQuestion.id]?.value ? parseInt(String(answers[currentQuestion.id].value).split(",")[1]) : 0}
                         onChange={(e) => {
                           setSliderMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
                           setConsequencesMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
