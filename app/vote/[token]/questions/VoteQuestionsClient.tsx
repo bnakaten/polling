@@ -213,7 +213,7 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
         const value = `${likelihoodValue},${consequencesValue}`;
         if (!sliderMovedAtLeastOnce[currentQuestion.id]) {
           console.log("Saving multirangeslider answer for", currentQuestion.id, ": skipped (not touched)");
-          saveAnswer(currentQuestion.id, "");
+          saveAnswer(currentQuestion.id, "0,0");
         } else {
           console.log("Saving multirangeslider answer for", currentQuestion.id, ":", value);
           saveAnswer(currentQuestion.id, value);
@@ -254,18 +254,18 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
     const submitAnswers = { ...answers };
 
     poll.questions
-      .filter((q: any) => q.answerType === "multirangeslider")
+      .filter((q: any) => q.answerType === "multirangeslider" || q.answerType === "default")
       .forEach((q: any) => {
         if (!submitAnswers[q.id]) {
-           submitAnswers[q.id] = { value: "", answered: false };
+           submitAnswers[q.id] = { value: q.answerType === "multirangeslider" ? "0,0" : "0", answered: false };
          }
-      });
+       });
 
     for (const [questionId, answer] of Object.entries(submitAnswers)) {
       const question = poll.questions.find((q: any) => q.id === parseInt(questionId));
       if (!question) continue;
       
-      if (question.isOptional && answer.value === "") {
+      if (question.isOptional && (answer.value === "" || answer.value === "0,0" || answer.value === "0")) {
         formData.append(`question_${questionId}`, "skipped");
         console.log(`Setting question_${questionId} to "skipped" (optional, not answered)`);
       } else if (answer.answered && answer.value !== null && answer.value !== "") {
@@ -403,14 +403,15 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                    <input
                      ref={likelihoodRef}
                      key={`likelihood-${currentQuestion.id}`}
-                     type="range"
-                     name={`question_${currentQuestion.id}_likelihood`}
-                      min="1"
-                      max="5"
-                        defaultValue={(() => {
-                          const val = answers[currentQuestion.id]?.value;
-                          return val ? parseInt(String(val).split(",")[0]) : 1;
-                        })()}
+                      type="range"
+                      name={`question_${currentQuestion.id}_likelihood`}
+                       min="0"
+                       max="5"
+                         defaultValue={((): number => {
+                           const val = answers[currentQuestion.id]?.value;
+                           const num = val ? parseInt(String(val).split(",")[0]) : 0;
+                           return num === 3 ? 0 : num;
+                         })()}
                         onChange={(e) => {
                           setSliderMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
                           setLikelihoodMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
@@ -424,59 +425,62 @@ export default function VoteQuestionsClient({ poll, token }: VoteQuestionsClient
                         }}
                     className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                   />
-                   <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                       <span>1 Not likely</span>
-                       <span>2 Low likely</span>
-                       <span>3 Likely</span>
-                       <span>4 Highly likely</span>
-                       <span>5 Near certainty</span>
-                   </div>
+                    <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                        <span>0 No vote</span>
+                        <span>1 Not likely</span>
+                        <span>2 Low likely</span>
+                        <span>3 Likely</span>
+                        <span>4 Highly likely</span>
+                        <span>5 Near certainty</span>
+                    </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-zinc-700 mb-2 block">Consequences</label>
                    <input
                      ref={consequencesRef}
                      key={`consequences-${currentQuestion.id}`}
-                     type="range"
-                     name={`question_${currentQuestion.id}_consequences`}
-                      min="1"
-                      max="5"
-                        defaultValue={(() => {
-                          const val = answers[currentQuestion.id]?.value;
-                          return val ? parseInt(String(val).split(",")[1]) : 1;
-                        })()}
+                      type="range"
+                      name={`question_${currentQuestion.id}_consequences`}
+                       min="0"
+                       max="5"
+                         defaultValue={((): number => {
+                           const val = answers[currentQuestion.id]?.value;
+                           const num = val ? parseInt(String(val).split(",")[1]) : 0;
+                           return num === 3 ? 0 : num;
+                         })()}
                         onChange={(e) => {
                           setSliderMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
                           setConsequencesMovedAtLeastOnce(prev => ({ ...prev, [currentQuestion.id]: true }));
                           const saved = String(answers[currentQuestion.id]?.value ?? "");
                           let parts = saved.split(",");
-                          if (saved === "") {
-                            parts = ["1", "1"];
-                          }
-                          parts[1] = e.target.value;
+                           if (saved === "") {
+                             parts = ["0", "0"];
+                           }
+                           parts[1] = e.target.value;
                           saveAnswer(currentQuestion.id, parts.join(","));
                         }}
                     className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                   />
-                   <div className="flex justify-between text-xs text-zinc-500 mt-1">
-                       <span>1 Minimal</span>
-                       <span>2 Minor</span>
-                       <span>3 Medium</span>
-                       <span>4 Major</span>
-                       <span>5 Critical</span>
-                   </div>
+                    <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                        <span>0 No vote</span>
+                        <span>1 Minimal</span>
+                        <span>2 Minor</span>
+                        <span>3 Medium</span>
+                        <span>4 Major</span>
+                        <span>5 Critical</span>
+                    </div>
                 </div>
-                 <div className="text-center">
-                   <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
-                     {(() => {
-                       const saved = String(answers[currentQuestion.id]?.value ?? "");
-                       const parts = saved.split(",");
-                       const likelihoodVal = parts[0] ? parseInt(parts[0]) : 1;
-                       const consequencesVal = parts[1] ? parseInt(parts[1]) : 1;
-                        return `Likelihood: ${likelihoodVal} / Consequences: ${consequencesVal}`;
-                     })()}
-                   </span>
-                </div>
+                  <div className="text-center">
+                    <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
+                      {(() => {
+                        const saved = String(answers[currentQuestion.id]?.value ?? "");
+                        const parts = saved.split(",");
+                        const likelihoodVal = parts[0] ? parseInt(parts[0]) : 0;
+                        const consequencesVal = parts[1] ? parseInt(parts[1]) : 0;
+                         return `Likelihood: ${likelihoodVal === 3 ? 0 : likelihoodVal} / Consequences: ${consequencesVal === 3 ? 0 : consequencesVal}`;
+                      })()}
+                    </span>
+                 </div>
               </div>
             ) : (
             <div className="space-y-3">

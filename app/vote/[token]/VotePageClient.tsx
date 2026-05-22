@@ -240,17 +240,23 @@ export default function VotePageClient({ poll, token }: VotePageClientProps) {
                 <input
                   type="range"
                   name={`question_${currentQuestion.id}_likelihood`}
-                  min="1"
-                  max="5"
-                  defaultValue={String(answers[currentQuestion.id]?.value ?? "3,3").split(",")[0]}
-                  onChange={(e) => {
-                    const parts = String(answers[currentQuestion.id]?.value || "3,3").split(",");
-                    parts[0] = e.target.value;
+                   min="0"
+                   max="5"
+                   defaultValue={((): string => {
+                     const val = String(answers[currentQuestion.id]?.value ?? "0,0");
+                     const parts = val.split(",");
+                     const first = parts[0] ? parts[0] : "0";
+                     return first === "3" ? "0" : first;
+                   })()}
+                   onChange={(e) => {
+                     const parts = String(answers[currentQuestion.id]?.value || "0,0").split(",");
+                     parts[0] = e.target.value;
                     saveAnswer(currentQuestion.id, parts.join(","));
                   }}
                   className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                 />
                 <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                  <span>0 No vote</span>
                   <span>1 Not likely</span>
                   <span>2 Low likely</span>
                   <span>3 Likely</span>
@@ -263,17 +269,23 @@ export default function VotePageClient({ poll, token }: VotePageClientProps) {
                 <input
                   type="range"
                   name={`question_${currentQuestion.id}_consequences`}
-                  min="1"
-                  max="5"
-                  defaultValue={String(answers[currentQuestion.id]?.value ?? "3,3").split(",")[1]}
-                  onChange={(e) => {
-                    const parts = String(answers[currentQuestion.id]?.value || "3,3").split(",");
-                    parts[1] = e.target.value;
+                   min="0"
+                   max="5"
+                   defaultValue={((): string => {
+                     const val = String(answers[currentQuestion.id]?.value ?? "0,0");
+                     const parts = val.split(",");
+                     const second = parts[1] ? parts[1] : "0";
+                     return second === "3" ? "0" : second;
+                   })()}
+                   onChange={(e) => {
+                     const parts = String(answers[currentQuestion.id]?.value || "0,0").split(",");
+                     parts[1] = e.target.value;
                     saveAnswer(currentQuestion.id, parts.join(","));
                   }}
                   className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                 />
                 <div className="flex justify-between text-xs text-zinc-500 mt-1">
+                  <span>0 No vote</span>
                   <span>1 Minimal</span>
                   <span>2 Minor</span>
                   <span>3 Medium</span>
@@ -281,11 +293,11 @@ export default function VotePageClient({ poll, token }: VotePageClientProps) {
                   <span>5 Critical</span>
                 </div>
               </div>
-              <div className="text-center">
-                <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
-                  Likelihood: {String(answers[currentQuestion.id]?.value ?? "3,3").split(",")[0]} / Consequences: {String(answers[currentQuestion.id]?.value ?? "3,3").split(",")[1]}
-                </span>
-              </div>
+               <div className="text-center">
+                 <span className="inline-block bg-zinc-900 text-white px-3 py-1 rounded text-sm font-medium">
+                   Likelihood: {String(answers[currentQuestion.id]?.value ?? "0,0").split(",")[0]} / Consequences: {String(answers[currentQuestion.id]?.value ?? "0,0").split(",")[1]}
+                 </span>
+               </div>
             </div>
           ) : (
             <div className="space-y-3">

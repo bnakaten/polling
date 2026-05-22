@@ -69,7 +69,7 @@ export default function CreatePollPage() {
     ]);
     setSliderValues(prev => ({
       ...prev,
-      [questions.length]: { likelihood: "3", consequences: "3" }
+      [questions.length]: { likelihood: "0", consequences: "0" }
     }));
   };
 
@@ -96,7 +96,7 @@ export default function CreatePollPage() {
     if (answerType === "multirangeslider") {
       setSliderValues(prev => ({
         ...prev,
-        [questionIndex]: prev[questionIndex] || { likelihood: "3", consequences: "3" }
+        [questionIndex]: prev[questionIndex] || { likelihood: "0", consequences: "0" }
       }));
     }
     
@@ -904,13 +904,14 @@ export default function CreatePollPage() {
                       <div className="space-y-2">
                         <input
                           type="range"
-                          min="1"
-                          max="5"
-                          value={sliderValues[questionIndex]?.likelihood || "3"}
+                           min="0"
+                           max="5"
+                           value={sliderValues[questionIndex]?.likelihood || "0"}
                           onChange={(e) => updateSliderValue(questionIndex, "likelihood", e.target.value)}
                           className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                         />
                         <div className="flex justify-between text-xs text-zinc-500">
+                          <span>0 No vote</span>
                           <span>1 Not likely</span>
                           <span>2 Low likely</span>
                           <span>3 Likely</span>
@@ -924,13 +925,14 @@ export default function CreatePollPage() {
                       <div className="space-y-2">
                         <input
                           type="range"
-                          min="1"
-                          max="5"
-                          value={sliderValues[questionIndex]?.consequences || "3"}
+                           min="0"
+                           max="5"
+                           value={sliderValues[questionIndex]?.consequences || "0"}
                           onChange={(e) => updateSliderValue(questionIndex, "consequences", e.target.value)}
                           className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                         />
                         <div className="flex justify-between text-xs text-zinc-500">
+                          <span>0 No vote</span>
                           <span>1 Minimal</span>
                           <span>2 Minor</span>
                           <span>3 Medium</span>

@@ -131,6 +131,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         });
 
         const likelihoodLabels: Record<string, string> = {
+          "0": "0 No vote",
           "1": "1 Not likely",
           "2": "2 Low likely",
           "3": "3 Likely",
@@ -138,6 +139,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
           "5": "5 Near certainty"
         };
         const consequencesLabels: Record<string, string> = {
+          "0": "0 No vote",
           "1": "1 Minimal",
           "2": "2 Minor",
           "3": "3 Medium",

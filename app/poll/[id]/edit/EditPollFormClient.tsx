@@ -527,12 +527,18 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
                     <input
                       type="range"
                       name={`question_${questionIndex}_likelihood`}
-                      min="1"
+                      min="0"
                       max="5"
-                      defaultValue={String(question.options[0]?.text || "3").split(",")[0] || "3"}
+                      defaultValue={((): string => {
+                        const val = String(question.options[0]?.text || "0");
+                        const parts = val.split(",");
+                        const first = parts[0] ? parts[0] : "0";
+                        return first === "3" ? "0" : first;
+                      })()}
                       className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                     />
                     <div className="flex justify-between text-xs text-zinc-500">
+                      <span>0 No vote</span>
                       <span>1 Not likely</span>
                       <span>2 Low likely</span>
                       <span>3 Likely</span>
@@ -547,12 +553,18 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
                     <input
                       type="range"
                       name={`question_${questionIndex}_consequences`}
-                      min="1"
+                      min="0"
                       max="5"
-                      defaultValue={String(question.options[0]?.text || "3,3").split(",")[1] || "3"}
+                      defaultValue={((): string => {
+                        const val = String(question.options[0]?.text || "0,0");
+                        const parts = val.split(",");
+                        const second = parts[1] ? parts[1] : "0";
+                        return second === "3" ? "0" : second;
+                      })()}
                       className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer"
                     />
                     <div className="flex justify-between text-xs text-zinc-500">
+                      <span>0 No vote</span>
                       <span>1 Minimal</span>
                       <span>2 Minor</span>
                       <span>3 Medium</span>
