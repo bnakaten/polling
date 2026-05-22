@@ -42,19 +42,18 @@ export default function VoteForm({ poll, token }: VoteFormProps) {
      if (storedValues) {
        try {
          const parsed = JSON.parse(storedValues);
-         if (parsed.multirangeValues) {
-           const parsedValues = parsed.multirangeValues;
-           Object.keys(parsedValues).forEach((key: string) => {
-             const questionId = parseInt(key);
-             const value = parsedValues[questionId];
-             if (value) {
-               parsedValues[questionId] = {
-                 likelihood: value.likelihood ?? 0,
-                 consequences: value.consequences ?? 0
-               };
-             }
-           });
-           setMultirangeValues(parsedValues);
+          if (parsed.multirangeValues) {
+            const parsedValues = parsed.multirangeValues;
+            const restoredValues: Record<number, { likelihood: number; consequences: number }> = {};
+            Object.keys(parsedValues).forEach((key: string) => {
+              const questionId = parseInt(key);
+              const value = parsedValues[questionId];
+              restoredValues[questionId] = {
+                likelihood: value?.likelihood ?? 0,
+                consequences: value?.consequences ?? 0
+              };
+            });
+            setMultirangeValues(restoredValues);
            console.log("Loaded from localStorage:", parsedValues);
          }
        } catch (e) {
