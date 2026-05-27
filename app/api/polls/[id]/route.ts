@@ -119,8 +119,25 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Title and questions are required" }, { status: 400 });
     }
 
-    await db.$transaction(
-      questions.map((q: any) =>
+    const pollWithQuestions = await db.poll.findUnique({
+      where: { id: pollId },
+      include: {
+        questions: {
+          select: { id: true },
+        },
+      },
+    });
+
+    const existingQuestionIds = pollWithQuestions?.questions.map((q: any) => q.id) || [];
+    const updatedQuestionIds = questions.map((q: any) => q.id);
+    const deletedQuestionIds = existingQuestionIds.filter((id: number) => !updatedQuestionIds.includes(id));
+    
+    console.log("[DEBUG API] existingQuestionIds:", existingQuestionIds);
+    console.log("[DEBUG API] updatedQuestionIds:", updatedQuestionIds);
+    console.log("[DEBUG API] deletedQuestionIds:", deletedQuestionIds);
+
+    await db.$transaction([
+      ...questions.map((q: any) =>
         db.question.upsert({
           where: { id: q.id },
           update: {
@@ -144,8 +161,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
             },
           },
         })
-      )
-    );
+      ),
+      ...deletedQuestionIds.length > 0 ? [db.question.deleteMany({ where: { id: { in: deletedQuestionIds } } })] : []
+    ]);
 
     await db.poll.update({
       where: { id: pollId },

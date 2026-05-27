@@ -131,9 +131,17 @@ async function EditPollForm({ poll, initialQuestions }: EditPollFormProps) {
         });
       }
 
+    const existingQuestionIds = initialQuestions.map((q: any) => q.id);
+    const updatedQuestionIds = questionData.filter((q: any) => q.text.trim()).map((q: any) => q.id);
+    const deletedQuestionIds = existingQuestionIds.filter((id: number) => !updatedQuestionIds.includes(id));
+    
+    console.log("[DEBUG] existingQuestionIds:", existingQuestionIds);
+    console.log("[DEBUG] updatedQuestionIds:", updatedQuestionIds);
+    console.log("[DEBUG] deletedQuestionIds:", deletedQuestionIds);
+
     try {
-      await db.$transaction(
-        questionData.filter((q) => q.text.trim()).map((q: any) =>
+      await db.$transaction([
+        ...questionData.filter((q) => q.text.trim()).map((q: any) =>
           db.question.upsert({
             where: { id: q.id },
             update: {
@@ -157,8 +165,9 @@ async function EditPollForm({ poll, initialQuestions }: EditPollFormProps) {
               },
             },
           })
-        )
-      );
+        ),
+        ...deletedQuestionIds.length > 0 ? [db.question.deleteMany({ where: { id: { in: deletedQuestionIds } } })] : []
+      ]);
 
       await db.poll.update({
         where: { id: poll.id },

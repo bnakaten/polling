@@ -87,6 +87,12 @@ export function EditPollFormClient({ poll, initialQuestions, initialQuestionCoun
     if (newQuestions.length > 1) {
       newQuestions.splice(questionIndex, 1);
       setQuestions(newQuestions);
+      
+      if (formRef.current) {
+        const form = formRef.current;
+        const inputsToRemove = form.querySelectorAll(`[name^="question_${questionIndex}_"], [name^="answerType_radio_${questionIndex}"]`);
+        inputsToRemove.forEach(input => input.remove());
+      }
     }
   };
 
